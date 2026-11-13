@@ -15,7 +15,10 @@
 		"validate:bento": "tsx scripts/validate-bento.ts",
 		"validate:community-tweets": "tsx scripts/validate-community-tweets.ts",
 		"test:smoke": "node scripts/smoke-tweets-api.mjs",
-		"verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm validate:bento && pnpm validate:community-tweets && pnpm build"
+		"test:unit": "tsx --test lib/credits/credits.test.ts",
+		"test:credits-api": "node scripts/smoke-credits-api.mjs",
+		"test:e2e": "playwright test",
+		"verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm validate:bento && pnpm validate:community-tweets && pnpm test:unit && pnpm build"
 	},
 	"dependencies": {
 		"@vercel/analytics": "~1.6.1",
@@ -23,15 +26,18 @@
 		"framer-motion": "~12.34.2",
 		"lucide-react": "~0.575.0",
 		"next": "~16.2.6",
+		"qrcode": "^1.5.4",
 		"react": "~19.2.4",
 		"react-dom": "~19.2.4",
 		"react-tweet": "~3.3.1",
 		"simple-icons": "~16.9.0"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.65.0",
 		"@tailwindcss/postcss": "~4.2.0",
 		"@types/dompurify": "~3.0.5",
 		"@types/node": "~25.3.0",
+		"@types/qrcode": "^1.5.6",
 		"@types/react": "~19.2.14",
 		"@types/react-dom": "~19.2.3",
 		"oxfmt": "~0.34.0",

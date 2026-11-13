@@ -8,3 +8,4 @@ When customizing a country fork:
 2. **Replace placeholder photos.** Files under `public/images/events/` are empty placeholders. Use the chapter’s own photos. Do not pull Athita / Thailand event photography without credit and permission.
 3. **Edit content, not branding ownership.** Customize `content/` for the local community. This template is community-maintained, not an official Cursor product.
 4. Prefer small, focused diffs. Run `pnpm verify` before finishing.
+5. **Credits claim secrets.** Never commit Luma guest CSVs, registrant emails, or live credit codes/links. Load them from env, `.data/` (gitignored), or `/creditos/admin`. Keep `lib/credits/store.ts` and `lib/credits/config.ts` server-only.

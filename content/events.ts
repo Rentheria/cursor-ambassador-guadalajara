@@ -1,30 +1,24 @@
 import { CursorEvent } from '@/lib/types';
 
-// REPLACE: Replace all sample events, locations, and Luma URLs with real community events.
 export const events: CursorEvent[] = [
 	{
-		id: 'cafe-cursor-example-1',
-		title: 'Cafe Cursor YourCity',
-		date: '2026-03-21',
-		displayDate: 'March 21, 2026',
-		location: 'Your City, YourCountry',
-		lumaUrl: 'https://lu.ma/example-event-1',
+		id: 'hackaton-mexico-gdl-2026',
+		title: 'Cursor Hackatón México: Guadalajara',
+		date: '2026-11-14',
+		displayDate: '14 de noviembre de 2026',
+		location: 'HackerGarage, Colonia Americana, Guadalajara',
+		lumaUrl: 'https://luma.com/k07swqi7',
 		status: 'upcoming',
 	},
 	{
-		id: 'cursor-seminar-yourcity',
-		title: 'Cursor Seminar YourCity',
-		date: '2026-02-14',
-		displayDate: 'February 14, 2026',
-		attendees: 38,
-		location: 'Your City, YourCountry',
-		recapPath: '/recaps/example-event',
+		id: 'cafe-cursor-gdl-2026-04',
+		title: 'Cafe Cursor Guadalajara',
+		date: '2026-04-25',
+		displayDate: '25 de abril de 2026',
+		attendees: 55,
+		location: 'Guadalajara, México',
 		thumbnail: '/images/events/placeholder-01.jpg',
 		galleryImages: ['/images/events/placeholder-02.jpg', '/images/events/placeholder-04.jpg'],
-		host: {
-			name: 'Host Venue',
-			logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=200&auto=format&fit=crop',
-		},
 		status: 'past',
 	},
 ];

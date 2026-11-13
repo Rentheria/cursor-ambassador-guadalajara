@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Guadalajara credits claim flow (`/creditos`, `/creditos/qr`, `/creditos/admin`) with Luma CSV matching, pool or shared credits, rate limiting, and organizer export
+- Spanish locale (`es`) as the chapter default, with English still available
 - Footer **System / Light / Dark** theme toggle (`lib/theme.tsx`, `ThemeToggle`, FOUC boot script) — default preference `system`
 - Shared 1300px / 24-column marketing grid with wide, reading, and prose spans
 - Warm-light and espresso-dark themes via semantic CSS tokens (`data-theme` + system fallback)

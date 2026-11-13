@@ -1,27 +1,23 @@
-// REPLACE: Update these values for your local Cursor community.
-// Keep the required footer template credit in components/Footer.tsx (see NOTICE / ATTRIBUTION.md).
+// Guadalajara chapter. Keep the required footer template credit in components/Footer.tsx.
 export const siteConfig = {
-	communityName: 'Cursor Community',
-	communityNameLocal: 'YourCity',
-	city: 'Your City',
-	country: 'YourCountry',
-	lumaUrl: 'https://lu.ma/cursor-community',
-	// REPLACE: Paste your Luma calendar embed URL from Luma → Calendar → Embed. Leave empty to hide the calendar section.
+	communityName: 'Cursor Guadalajara',
+	communityNameLocal: 'Guadalajara',
+	city: 'Guadalajara',
+	country: 'México',
+	lumaUrl: 'https://luma.com/k07swqi7',
 	lumaCalendarEmbedUrl: '',
 	cursorCommunityUrl: 'https://cursor.com/community',
-	defaultLocale: 'en',
-	locales: ['en'],
-	footerTagline: 'Made with Cursor by ambassadors worldwide',
-	/** Short site description for <meta>, Open Graph, and Twitter cards. Keep it concrete. */
-	description: 'Local Cursor meetups, workshops, and event recaps.',
-	/** Path under /public for the default 1200×630 share image. */
+	defaultLocale: 'es',
+	locales: ['es', 'en'],
+	footerTagline: 'Hecho con Cursor por la comunidad de Guadalajara',
+	description:
+		'Kickoff del Hackatón México en Guadalajara: créditos de Cursor, comunidad local y el siguiente Cafe Cursor.',
 	ogImage: '/og.jpg',
 	sections: {
 		matchmaking: false,
 		photoDisclaimer: false,
 		lumaCalendar: false,
 		communityTweets: false,
-		/** Set true after replacing sample quotes in content/community-quotes.ts */
 		communityQuotes: false,
 	},
 };

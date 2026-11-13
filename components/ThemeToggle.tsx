@@ -33,9 +33,7 @@ export default function ThemeToggle() {
 						title={t(labelKey)}
 						className={cn(
 							'flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150',
-							active
-								? 'bg-cursor-surface-raised text-cursor-text'
-								: 'text-cursor-text-muted hover:text-cursor-text'
+							active ? 'bg-cursor-surface-raised text-cursor-text' : 'text-cursor-text-muted hover:text-cursor-text',
 						)}
 					>
 						<Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />

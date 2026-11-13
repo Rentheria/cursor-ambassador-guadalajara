@@ -1,14 +1,6 @@
 'use client';
 
-import {
-	createContext,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-	type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { THEME_STORAGE_KEY } from '@/lib/theme-boot';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
@@ -88,7 +80,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 	const value = useMemo(
 		() => ({ preference, resolved, setPreference, mounted }),
-		[preference, resolved, setPreference, mounted]
+		[preference, resolved, setPreference, mounted],
 	);
 
 	return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

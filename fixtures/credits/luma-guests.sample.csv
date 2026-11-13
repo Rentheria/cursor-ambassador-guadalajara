@@ -1,0 +1,7 @@
+api_id,name,first_name,last_name,email,approval_status,created_at
+evt-guest-1,"Ana Builder",Ana,Builder,ana.builder@example.com,approved,2026-11-01T18:00:00.000Z
+evt-guest-2,"Bruno Guest",Bruno,Guest,bruno.guest@example.com,approved,2026-11-02T18:00:00.000Z
+evt-guest-3,"Camilo Plus",Camilo,Plus,camilo.plus@example.com,going,2026-11-03T18:00:00.000Z
+evt-guest-4,"Pending Person",Pending,Person,pending.person@example.com,pending,2026-11-04T18:00:00.000Z
+evt-guest-5,"Declined Dev",Declined,Dev,declined.dev@example.com,declined,2026-11-05T18:00:00.000Z
+evt-guest-6,"Quoted, Name",Quoted,Name,"quoted.name@example.com",approved,2026-11-06T18:00:00.000Z

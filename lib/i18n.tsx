@@ -44,26 +44,32 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
 
 	const t = (key: string, params?: Record<string, string>): string => {
 		const keys = key.split('.');
-		const activeTranslations = TRANSLATION_BUNDLES_BY_LOCALE[locale] ?? TRANSLATION_BUNDLES_BY_LOCALE.en;
-
-		let value: string | TranslationTree | undefined = activeTranslations;
-		for (const k of keys) {
-			if (typeof value !== 'object' || value === null) {
-				value = undefined;
-				break;
+		const lookup = (bundle: TranslationTree | undefined): string | undefined => {
+			if (!bundle) return undefined;
+			let value: string | TranslationTree | undefined = bundle;
+			for (const k of keys) {
+				if (typeof value !== 'object' || value === null) {
+					return undefined;
+				}
+				value = value[k];
 			}
-			value = value[k];
-		}
+			return typeof value === 'string' ? value : undefined;
+		};
 
-		if (typeof value !== 'string') {
+		const resolved =
+			lookup(TRANSLATION_BUNDLES_BY_LOCALE[locale]) ??
+			lookup(TRANSLATION_BUNDLES_BY_LOCALE[siteConfig.defaultLocale]) ??
+			lookup(TRANSLATION_BUNDLES_BY_LOCALE.en);
+
+		if (!resolved) {
 			return key;
 		}
 
 		if (!params) {
-			return value;
+			return resolved;
 		}
 
-		return value.replace(/\{(\w+)\}/g, (match, paramKey) => params[paramKey] ?? match);
+		return resolved.replace(/\{(\w+)\}/g, (match, paramKey) => params[paramKey] ?? match);
 	};
 
 	return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;

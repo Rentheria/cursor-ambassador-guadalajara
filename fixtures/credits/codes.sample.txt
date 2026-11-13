@@ -1,0 +1,4 @@
+# Fake pool for local tests only. Never commit real Cursor credit links.
+https://cursor.com/referral?code=FAKE-GDL-001
+https://cursor.com/referral?code=FAKE-GDL-002
+CURSOR-GDL-TEST-003

@@ -17,11 +17,11 @@ Self-contained marketing primitives aligned with cursor.com (`/pricing`, `/downl
 
 Related chrome (chapter-agnostic, also portable):
 
-| File                         | Role                                                                 |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `lib/theme-boot.ts`          | FOUC script + storage key (safe for server `layout.tsx`)             |
-| `lib/theme.tsx`              | `ThemeProvider` + `useTheme` (`system` \| `light` \| `dark`)         |
-| `components/ThemeToggle.tsx` | Footer segmented control (system / sun / moon)                       |
+| File                         | Role                                                         |
+| ---------------------------- | ------------------------------------------------------------ |
+| `lib/theme-boot.ts`          | FOUC script + storage key (safe for server `layout.tsx`)     |
+| `lib/theme.tsx`              | `ThemeProvider` + `useTheme` (`system` \| `light` \| `dark`) |
+| `components/ThemeToggle.tsx` | Footer segmented control (system / sun / moon)               |
 
 ## Hierarchy
 

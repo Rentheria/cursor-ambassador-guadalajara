@@ -19,6 +19,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+	allowedDevOrigins: ['127.0.0.1'],
 	async headers() {
 		return [
 			{
@@ -33,6 +34,11 @@ const nextConfig = {
 				source: '/slides/1',
 				destination: '/slides',
 				permanent: true,
+			},
+			{
+				source: '/claim',
+				destination: '/creditos',
+				permanent: false,
 			},
 		];
 	},

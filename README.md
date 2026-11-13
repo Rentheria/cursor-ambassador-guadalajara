@@ -38,6 +38,7 @@ Before launching a country site, walk through the checklist in [`ATTRIBUTION.md`
 ### App routes
 
 - `app/page.tsx`: homepage on the shared 24-column marketing grid.
+- `app/creditos/page.tsx`: Luma email → Cursor credits claim (server-side only).
 - `app/recaps/[slug]/page.tsx`: dynamic recap page route.
 - `app/slides/[id]/page.tsx`: optional workshop slides route.
 
@@ -212,12 +213,76 @@ The closing CTA (“Come build with us”) and footer always render. Remove an a
 
 ```bash
 pnpm dev                         # local development
-pnpm verify                      # format + lint + typecheck + validators + build
+pnpm verify                      # format + lint + typecheck + validators + unit tests + build
 pnpm validate:bento              # slot overlap / grid coverage check
 pnpm validate:community-tweets   # tweet URL/id allowlist + Browse on X href
+pnpm test:unit                   # credits CSV / email / assignment tests
+pnpm test:e2e                    # Playwright smoke for /creditos (registered, unknown, admin)
+pnpm test:credits-api            # optional: claim API against `pnpm start` (run after build)
 pnpm test:smoke                  # optional: production server tweet API (needs Twitter egress)
 pnpm typecheck                   # TypeScript only
 ```
+
+## Credits claim (Guadalajara kickoff)
+
+Attendees open `/creditos` (QR at `/creditos/qr`, alias `/claim`) and type the email they used on Luma. The server checks a Luma guests export (`name`, `email`, `approval_status`) and only approved/registered guests receive a credit. Unknown emails see a message to find the organizers at the end of the event.
+
+Two modes, set with `CREDITS_MODE`:
+
+- `pool` (default): unique codes or links, one per email. Re-claiming the same email (trimmed, case-insensitive) returns the same credit. If the pool is empty, they are asked to see the organizers.
+- `shared`: every eligible email sees `CREDITS_SHARED_LINK`.
+
+**This repo is public.** Never commit the real Luma CSV, registrant emails, or live credit codes. Sample files under `fixtures/credits/` use `@example.com` only.
+
+### Load guests and credits
+
+Pick one, in this order of convenience:
+
+1. **Admin upload** at `/creditos/admin` (password = `CREDITS_ADMIN_PASSWORD`). Upload the Luma CSV and a `.txt` of codes (one per line).
+2. **Gitignored files** on the server:
+   - `CREDITS_GUESTS_PATH=.data/luma-guests.csv`
+   - `CREDITS_POOL_PATH=.data/credits-pool.txt`
+3. **Env vars** for small fixtures or hosted secrets: `CREDITS_GUESTS_CSV`, `CREDITS_POOL` (newline-separated), `CREDITS_SHARED_LINK`.
+
+Claims are stored server-side:
+
+- Node (`pnpm start`, a VPS, Hostinger Node): JSON file at `CREDITS_STORE_PATH` (default `.data/credits-store.json`, gitignored).
+- Vercel serverless: set `KV_REST_API_URL` + `KV_REST_API_TOKEN` (Vercel KV) or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. Without KV, the JSON file is ephemeral between instances.
+
+### Env vars
+
+| Variable                                     | Required                     | Purpose                                      |
+| -------------------------------------------- | ---------------------------- | -------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`                       | yes in prod                  | Public origin for the QR (no trailing slash) |
+| `CREDITS_ADMIN_PASSWORD`                     | yes to claim live            | Organizer password for `/creditos/admin`     |
+| `CREDITS_MODE`                               | no (`pool`)                  | `pool` or `shared`                           |
+| `CREDITS_SHARED_LINK`                        | if shared                    | Single link shown to every eligible email    |
+| `CREDITS_GUESTS_PATH` / `CREDITS_GUESTS_CSV` | one of these or admin upload | Luma guests export                           |
+| `CREDITS_POOL_PATH` / `CREDITS_POOL`         | pool mode, or admin upload   | Unique codes/links, one per line             |
+| `CREDITS_STORE_PATH`                         | no                           | Claim log JSON (Node hosts)                  |
+| `KV_REST_API_URL` + `KV_REST_API_TOKEN`      | Vercel                       | Persist claims on serverless                 |
+
+The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. Responses never include other emails or unused codes — only the one credit for a verified address.
+
+### Deploy (do not ship secrets in git)
+
+1. Set `NEXT_PUBLIC_SITE_URL` to the production domain.
+2. Set `CREDITS_ADMIN_PASSWORD`.
+3. Set `CREDITS_MODE` to `pool` or `shared`.
+4. On Vercel, add KV (or Upstash) if you need claims to survive. On a Node host, `.data/` on disk is enough.
+5. Deploy with the usual Next.js build (`pnpm build` / `pnpm start`, or Vercel defaults).
+6. After deploy, open `/creditos/admin`, upload the Luma CSV and the codes (or drop gitignored files on the server).
+7. Print `/creditos/qr` for the registration table.
+
+### Export results
+
+From `/creditos/admin` after logging in:
+
+- **Exportar reclamados** → who claimed, when, and which credit
+- **Exportar sin reclamar** → eligible Luma guests with no claim yet
+- **Exportar intentos fallidos** → emails that were not on the list or were not approved
+
+Use those CSVs at the end of the kickoff to help people who could not claim.
 
 ## Changelog
 
@@ -255,28 +320,28 @@ See `CONTRIBUTING.md`.
 
 ## Sites Using This Template
 
-| Country / region     | Site                                                       | Maintainer(s)                                           |
-| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------- |
-| Austria              | [cursoraustria.com](https://cursoraustria.com)             | —                                                       |
-| Belgium              | [cursorbelgium.com](https://cursorbelgium.com)             | [Kris](https://github.com/krismatterz) (`@krismatterz`) |
-| Brazil               | [cursorbrasil.com.br](https://cursorbrasil.com.br)         | -  |
-| Bulgaria             | [cursorbulgaria.com](https://cursorbulgaria.com)           | [Kristiyan Velkov](https://github.com/kristiyan-velkov) |
-| Canada (Calgary)     | [cursorcalgary.com](https://cursorcalgary.com)             | —                                                       |
-| Croatia              | [cursorcroatia.com](https://cursorcroatia.com)             | [Nico](https://github.com/nitodeco)                     |
-| El Salvador          | [cursorelsalvador.com](https://cursorelsalvador.com)       | —                                                       |
-| Germany              | [cursorgermany.com](https://cursorgermany.com)             | [Maurice](https://github.com/mpdesigncode27)            |
-| Indonesia            | [cursorindonesia.com](https://cursorindonesia.com)         | —                                                       |
-| Italy (Trento)       | [trento.cursor-italy.com](https://trento.cursor-italy.com) | [Davide Carlomagno](https://github.com/dvdcarlomagno)   |
-| Mexico (Guadalajara)       | [cursorguadalajara.com](https://www.cursorguadalajara.com/) | -   |
-| Netherlands          | [cursornetherlands.com](https://cursornetherlands.com)     | Rogier Muller, Thijs Sondag                             |
-| New Zealand          | [cursornewzealand.co.nz/](https://cursornewzealand.co.nz) | —                                                |
-| Romania              | [cursorromania.com](https://cursorromania.com)             | [Sergei Chyrkov](https://github.com/chyrkov)            |
-| Serbia               | [cursorserbia.com](https://cursorserbia.com)               | [Aleksandar Hadzibabic](https://github.com/hadzija7)    |
-| South Africa         | [cursorsouthafrica.com](https://cursorsouthafrica.com)     | [@TKala82](https://github.com/TKala82)                  |
-| Sri Lanka            | [cursorsrilanka.com](https://cursorsrilanka.com)           | Rasal Jayasinghe                                        |
-| Thailand             | [cursorthailand.com](https://cursorthailand.com)           | [Luisfer Romero Calero](https://github.com/luisfer)     |
-| UAE                  | [cursoruae.com](https://cursoruae.com)                     | [Juanjo do Olmo](https://github.com/SimplyJuanjo)       |
-| USA (Salt Lake City) | [cursorslc.com](https://cursorslc.com)                     | [Will Rowston](https://github.com/wrowston)             |
+| Country / region     | Site                                                        | Maintainer(s)                                           |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+| Austria              | [cursoraustria.com](https://cursoraustria.com)              | —                                                       |
+| Belgium              | [cursorbelgium.com](https://cursorbelgium.com)              | [Kris](https://github.com/krismatterz) (`@krismatterz`) |
+| Brazil               | [cursorbrasil.com.br](https://cursorbrasil.com.br)          | -                                                       |
+| Bulgaria             | [cursorbulgaria.com](https://cursorbulgaria.com)            | [Kristiyan Velkov](https://github.com/kristiyan-velkov) |
+| Canada (Calgary)     | [cursorcalgary.com](https://cursorcalgary.com)              | —                                                       |
+| Croatia              | [cursorcroatia.com](https://cursorcroatia.com)              | [Nico](https://github.com/nitodeco)                     |
+| El Salvador          | [cursorelsalvador.com](https://cursorelsalvador.com)        | —                                                       |
+| Germany              | [cursorgermany.com](https://cursorgermany.com)              | [Maurice](https://github.com/mpdesigncode27)            |
+| Indonesia            | [cursorindonesia.com](https://cursorindonesia.com)          | —                                                       |
+| Italy (Trento)       | [trento.cursor-italy.com](https://trento.cursor-italy.com)  | [Davide Carlomagno](https://github.com/dvdcarlomagno)   |
+| Mexico (Guadalajara) | [cursorguadalajara.com](https://www.cursorguadalajara.com/) | -                                                       |
+| Netherlands          | [cursornetherlands.com](https://cursornetherlands.com)      | Rogier Muller, Thijs Sondag                             |
+| New Zealand          | [cursornewzealand.co.nz/](https://cursornewzealand.co.nz)   | —                                                       |
+| Romania              | [cursorromania.com](https://cursorromania.com)              | [Sergei Chyrkov](https://github.com/chyrkov)            |
+| Serbia               | [cursorserbia.com](https://cursorserbia.com)                | [Aleksandar Hadzibabic](https://github.com/hadzija7)    |
+| South Africa         | [cursorsouthafrica.com](https://cursorsouthafrica.com)      | [@TKala82](https://github.com/TKala82)                  |
+| Sri Lanka            | [cursorsrilanka.com](https://cursorsrilanka.com)            | Rasal Jayasinghe                                        |
+| Thailand             | [cursorthailand.com](https://cursorthailand.com)            | [Luisfer Romero Calero](https://github.com/luisfer)     |
+| UAE                  | [cursoruae.com](https://cursoruae.com)                      | [Juanjo do Olmo](https://github.com/SimplyJuanjo)       |
+| USA (Salt Lake City) | [cursorslc.com](https://cursorslc.com)                      | [Will Rowston](https://github.com/wrowston)             |
 
 > This list is forked or deployed from this repo only. Maintainer links point to the GitHub profile that owns or maintains the chapter site when known. Corrections welcome via PR.
 

@@ -28,7 +28,12 @@ export const metadata: Metadata = {
 		type: 'website',
 		url: siteUrl,
 		siteName: siteConfig.communityName,
-		locale: siteConfig.defaultLocale === 'en' ? 'en_US' : siteConfig.defaultLocale,
+		locale:
+			siteConfig.defaultLocale === 'en'
+				? 'en_US'
+				: siteConfig.defaultLocale === 'es'
+					? 'es_MX'
+					: siteConfig.defaultLocale,
 		images: [
 			{
 				url: ogImage,
@@ -53,10 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang={siteConfig.defaultLocale} suppressHydrationWarning>
 			<head>
-				<script
-					nonce={nonce || undefined}
-					dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
-				/>
+				<script nonce={nonce || undefined} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
 			</head>
 			<body className="antialiased">
 				<Providers>{children}</Providers>

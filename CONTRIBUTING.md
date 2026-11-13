@@ -43,7 +43,7 @@ Before submitting a PR, run:
 pnpm verify
 ```
 
-This runs format check, lint, typecheck, bento layout validation, and production build.
+This runs format check, lint, typecheck, bento layout validation, credits unit tests, and production build. Use `pnpm test:e2e` for the `/creditos` Playwright smoke.
 
 ## Adding optional community tweets
 
