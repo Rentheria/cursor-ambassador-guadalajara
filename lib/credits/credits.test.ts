@@ -12,6 +12,7 @@ import {
 	toCsv,
 } from './csv';
 import { emailsMatch, normalizeEmail } from './email';
+import { CLAIM_MESSAGE_KEYS, claimUiPhase, isClaimMessageStatus } from './claim-ui';
 import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
 import { clientKeyFromRequest, consumeRateLimit, resetRateLimitForTests } from './rate-limit';
 
@@ -194,6 +195,34 @@ describe('code assignment', () => {
 		const next = claimCredit(start, huge, now);
 		assert.equal(next.result.status, 'invalid');
 		assert.equal(next.state.failedAttempts[0]?.email.length, 254);
+	});
+});
+
+describe('claim UI phase', () => {
+	it('keeps the form until a response arrives', () => {
+		assert.equal(claimUiPhase(null), 'form');
+		assert.equal(claimUiPhase(undefined), 'form');
+	});
+
+	it('replaces the form with a success screen or a message screen', () => {
+		assert.equal(claimUiPhase('ok'), 'success');
+		assert.equal(claimUiPhase('not_registered'), 'message');
+		assert.equal(claimUiPhase('exhausted'), 'message');
+		assert.equal(claimUiPhase('invalid'), 'message');
+		assert.equal(claimUiPhase('rate_limited'), 'message');
+		assert.equal(claimUiPhase('unavailable'), 'message');
+		assert.equal(claimUiPhase('forbidden'), 'message');
+	});
+
+	it('has copy keys for every non-success outcome', () => {
+		const statuses = ['not_registered', 'exhausted', 'invalid', 'rate_limited', 'unavailable', 'forbidden'] as const;
+		for (const status of statuses) {
+			assert.equal(isClaimMessageStatus(status), true);
+			assert.ok(CLAIM_MESSAGE_KEYS[status].heading.startsWith('credits.'));
+			assert.ok(CLAIM_MESSAGE_KEYS[status].body.startsWith('credits.'));
+			assert.ok(CLAIM_MESSAGE_KEYS[status].testId.startsWith('credits-'));
+		}
+		assert.equal(isClaimMessageStatus('ok'), false);
 	});
 });
 

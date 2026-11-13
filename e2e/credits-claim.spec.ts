@@ -75,18 +75,30 @@ test('claim page: registered, not registered, and admin', async ({ page, request
 		page.getByRole('button', { name: /Reclamar créditos/i }).click(),
 	]);
 	await waitForMotions(page, 'credits-success');
+	await expect(page.getByTestId('credits-form')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /Reclamar créditos/i })).toHaveCount(0);
 	await expect(page.getByTestId('credits-value')).toHaveText(firstBody.credit);
 	await expect(page.getByTestId('credits-copy')).toBeVisible();
+	await expect(page.getByRole('heading', { name: /Estos son tus créditos/i })).toBeFocused();
 	await saveShot(page, 'credits_claim_registered.png');
 
+	await page.goto('/creditos');
 	await page.getByLabel(/Correo con el que te registraste/i).fill('not.on.the.list@example.com');
 	await Promise.all([
 		page.waitForResponse((res) => res.url().includes('/api/credits/claim') && res.request().method() === 'POST'),
 		page.getByRole('button', { name: /Reclamar créditos/i }).click(),
 	]);
 	await waitForMotions(page, 'credits-not-registered');
+	await expect(page.getByTestId('credits-form')).toHaveCount(0);
 	await expect(page.getByText(/Pasa con el equipo organizador al final del evento/i)).toBeVisible();
+	await expect(page.getByRole('heading', { name: /No encontramos ese correo/i })).toBeFocused();
+	await expect(page.getByTestId('credits-try-another')).toBeVisible();
 	await saveShot(page, 'credits_claim_not_registered.png');
+
+	await page.getByTestId('credits-try-another').click();
+	await waitForMotions(page, 'credits-form');
+	await expect(page.getByLabel(/Correo con el que te registraste/i)).toBeVisible();
+	await expect(page.getByLabel(/Correo con el que te registraste/i)).toBeFocused();
 
 	const pending = await request.post('/api/credits/claim', {
 		data: { email: 'pending.person@example.com' },
@@ -186,6 +198,7 @@ test('claim and QR screenshots: mobile + desktop, light + dark', async ({ page }
 		page.getByRole('button', { name: /Reclamar créditos/i }).click(),
 	]);
 	await waitForMotions(page, 'credits-success');
+	await expect(page.getByTestId('credits-form')).toHaveCount(0);
 	await saveShot(page, 'credits_claim_registered_mobile_light.png');
 
 	await page.setViewportSize(DESKTOP);
@@ -194,12 +207,15 @@ test('claim and QR screenshots: mobile + desktop, light + dark', async ({ page }
 
 	await page.setViewportSize(MOBILE);
 	await setTheme(page, 'dark');
+	await page.goto('/creditos');
+	await setTheme(page, 'dark');
 	await page.getByLabel(/Correo con el que te registraste/i).fill('not.on.the.list@example.com');
 	await Promise.all([
 		page.waitForResponse((res) => res.url().includes('/api/credits/claim') && res.request().method() === 'POST'),
 		page.getByRole('button', { name: /Reclamar créditos/i }).click(),
 	]);
 	await waitForMotions(page, 'credits-not-registered');
+	await expect(page.getByTestId('credits-try-another')).toBeVisible();
 	await saveShot(page, 'credits_claim_not_registered_mobile_dark.png');
 
 	await page.setViewportSize(DESKTOP);
