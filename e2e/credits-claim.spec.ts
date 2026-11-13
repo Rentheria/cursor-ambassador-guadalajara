@@ -24,6 +24,8 @@ test.describe.configure({ mode: 'serial' });
 test('claim page: registered, not registered, and admin', async ({ page, request }) => {
 	await page.goto('/creditos');
 	await expect(page.getByRole('heading', { name: /Reclama tus créditos de Cursor/i })).toBeVisible();
+	await expect(page.getByText(/¿Organizas el evento/i)).toHaveCount(0);
+	await expect(page.getByRole('link', { name: /Panel de organización/i })).toHaveCount(0);
 	await saveShot(page, 'credits_claim_form.png');
 
 	const first = await request.post('/api/credits/claim', {

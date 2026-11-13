@@ -120,8 +120,6 @@
 		"unavailable": "Los créditos aún no están abiertos. Pasa con el equipo organizador.",
 		"needQrHeading": "Escanea el QR del evento",
 		"needQrBody": "Esta página solo entrega créditos desde el código QR impreso en la sede. Pasa con el equipo organizador si no lo tienes.",
-		"organizerHint": "¿Organizas el evento?",
-		"organizerLink": "Panel de organización",
 		"qrCta": "Página para imprimir el QR",
 		"adminEyebrow": "Organización",
 		"adminHeading": "Créditos del kickoff",

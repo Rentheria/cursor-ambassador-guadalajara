@@ -1,7 +1,6 @@
 'use client';
 
 import CreditsClaimForm from '@/components/CreditsClaimForm';
-import { TextLink } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { siteConfig } from '@/content/site.config';
 
@@ -18,12 +17,6 @@ export default function CreditsClaimView() {
 			<div className="mt-10">
 				<CreditsClaimForm />
 			</div>
-			<p className="mt-10 text-sm text-cursor-text-muted">
-				{t('credits.organizerHint')}{' '}
-				<TextLink href="/creditos/admin" caret>
-					{t('credits.organizerLink')}
-				</TextLink>
-			</p>
 		</>
 	);
 }
