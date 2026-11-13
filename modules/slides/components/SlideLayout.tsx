@@ -1,55 +1,69 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 interface SlideLayoutProps {
 	currentSlide: number;
 	totalSlides: number;
 	children: React.ReactNode;
+	/** Shareable deck entry (slide 1). Default `/slides`. */
+	entryPath?: string;
+	/** Numbered slides path builder. Default `(n) => /slides/${n}`. */
+	slidePath?: (slideId: number) => string;
 	storageKey?: string;
+	/** Treat first + last as title slides (full-bleed chrome). Default true. */
+	titleEnds?: boolean;
 }
 
-const SlideLayout: React.FC<SlideLayoutProps> = ({
+export default function SlideLayout({
 	currentSlide,
 	totalSlides,
 	children,
+	entryPath = '/slides',
+	slidePath = (n) => `/slides/${n}`,
 	storageKey = 'cursor-ambassador-current-slide',
-}) => {
+	titleEnds = true,
+}: SlideLayoutProps) {
 	const router = useRouter();
-	const pathname = usePathname();
 	const [isNavigating, setIsNavigating] = useState(false);
-	const basePath = pathname.replace(/\/\d+$/, '');
+	const isTitleSlide = titleEnds && (currentSlide === 1 || currentSlide === totalSlides);
+
+	const hrefFor = useCallback(
+		(slideId: number) => (slideId <= 1 ? entryPath : slidePath(slideId)),
+		[entryPath, slidePath],
+	);
 
 	const goToSlide = useCallback(
 		(slideId: number) => {
 			if (slideId < 1 || slideId > totalSlides) return;
 			setIsNavigating(true);
-			router.push(`${basePath}/${slideId}`);
+			router.push(hrefFor(slideId));
 		},
-		[router, basePath, totalSlides],
+		[router, hrefFor, totalSlides],
 	);
 
 	const handleKeyDown = useCallback(
-		(event: KeyboardEvent) => {
+		(e: KeyboardEvent) => {
 			if (isNavigating) return;
 
-			switch (event.key) {
+			switch (e.key) {
 				case 'ArrowLeft':
-					event.preventDefault();
+					e.preventDefault();
 					if (currentSlide > 1) goToSlide(currentSlide - 1);
 					break;
 				case 'ArrowRight':
-					event.preventDefault();
+					e.preventDefault();
 					if (currentSlide < totalSlides) goToSlide(currentSlide + 1);
 					break;
 				case 'Home':
-					event.preventDefault();
+					e.preventDefault();
 					goToSlide(1);
 					break;
 				case 'End':
-					event.preventDefault();
+					e.preventDefault();
 					goToSlide(totalSlides);
 					break;
 				default:
@@ -70,53 +84,49 @@ const SlideLayout: React.FC<SlideLayoutProps> = ({
 	}, [currentSlide, storageKey]);
 
 	return (
-		<div className="min-h-screen bg-cursor-bg text-cursor-text flex flex-col">
-			<main className="flex-1 flex items-start justify-center p-6 md:p-10 pt-8 overflow-y-auto pb-32 md:pb-36">
-				<div className="w-full max-w-6xl pb-16">{children}</div>
+		<div className="min-h-screen bg-cursor-bg text-cursor-text flex flex-col font-sans">
+			<main
+				className={`flex-1 flex overflow-y-auto pb-24 ${
+					isTitleSlide
+						? 'items-stretch px-10 md:px-20 lg:px-28 xl:px-36'
+						: 'items-start justify-center px-6 md:px-10 pt-10 md:pt-14'
+				}`}
+			>
+				<div className={`w-full ${isTitleSlide ? 'max-w-6xl mx-auto flex flex-col' : 'max-w-4xl'}`}>{children}</div>
 			</main>
 
-			<div className="fixed bottom-0 left-0 right-0 p-4 bg-cursor-bg/90 backdrop-blur-sm border-t border-cursor-border">
-				<div className="max-w-6xl mx-auto flex items-center justify-between">
-					<button
+			<div className="fixed bottom-0 left-0 right-0 px-6 py-4 bg-cursor-bg/90 backdrop-blur-sm border-t border-cursor-border">
+				<div className="max-w-4xl mx-auto flex items-center justify-between gap-6">
+					<Button
+						type="button"
+						variant="secondary"
+						size="sm"
 						onClick={() => goToSlide(currentSlide - 1)}
 						disabled={currentSlide === 1}
-						className="flex items-center space-x-2 px-4 py-2 rounded-md bg-cursor-surface hover:bg-cursor-surface-raised disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 						aria-label="Previous slide"
 					>
-						<ChevronLeft className="w-5 h-5" />
-						<span className="hidden md:inline">Previous</span>
-					</button>
+						<ChevronLeft className="w-4 h-4" />
+						<span className="hidden sm:inline">Previous</span>
+					</Button>
 
-					<div className="flex items-center space-x-2">
-						{Array.from({ length: totalSlides }, (_, i) => i + 1).map((slideId) => (
-							<button
-								key={slideId}
-								onClick={() => goToSlide(slideId)}
-								className={`w-2 h-2 rounded-full transition-all ${
-									slideId === currentSlide ? 'bg-cursor-text w-8' : 'bg-cursor-text-faint hover:bg-cursor-text-muted'
-								}`}
-								aria-label={`Go to slide ${slideId}`}
-							/>
-						))}
-					</div>
+					<p className="text-xs text-cursor-text-muted tabular-nums tracking-wide">
+						{currentSlide}
+						<span className="text-cursor-text-faint"> / {totalSlides}</span>
+					</p>
 
-					<div className="text-sm text-cursor-text-muted hidden md:block">
-						{currentSlide} / {totalSlides}
-					</div>
-
-					<button
+					<Button
+						type="button"
+						variant="primary"
+						size="sm"
 						onClick={() => goToSlide(currentSlide + 1)}
 						disabled={currentSlide >= totalSlides}
-						className="flex items-center space-x-2 px-4 py-2 rounded-md bg-cursor-surface hover:bg-cursor-surface-raised disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 						aria-label="Next slide"
 					>
-						<span className="hidden md:inline">Next</span>
-						<ChevronRight className="w-5 h-5" />
-					</button>
+						<span className="hidden sm:inline">Next</span>
+						<ChevronRight className="w-4 h-4" />
+					</Button>
 				</div>
 			</div>
 		</div>
 	);
-};
-
-export default SlideLayout;
+}

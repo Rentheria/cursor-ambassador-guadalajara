@@ -1,5 +1,3 @@
 export default function SectionDivider() {
-  return (
-    <hr className="h-px border-0 bg-gradient-to-r from-transparent via-cursor-border-emphasis to-transparent mb-20 md:mb-28" />
-  )
+	return <hr className="mb-20 h-px border-0 bg-cursor-border md:mb-28" />;
 }

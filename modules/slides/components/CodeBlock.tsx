@@ -1,39 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { Button, cardInteractive } from '@/components/ui';
 
 interface CodeBlockProps {
 	code: string;
 }
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
-	const [isCopied, setIsCopied] = useState(false);
+export default function CodeBlock({ code }: CodeBlockProps) {
+	const [copied, setCopied] = useState(false);
 
 	const handleCopy = async () => {
 		try {
 			await navigator.clipboard.writeText(code);
-			setIsCopied(true);
-			setTimeout(() => setIsCopied(false), 2_000);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2_000);
 		} catch (error) {
 			console.error('Failed to copy code', error);
 		}
 	};
 
 	return (
-		<div className="relative group">
-			<button
+		<div className={`relative group ${cardInteractive}`}>
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
 				onClick={handleCopy}
-				className="absolute top-4 right-4 p-2 rounded bg-cursor-surface-raised hover:bg-cursor-surface text-cursor-text-muted hover:text-cursor-text transition-opacity opacity-0 group-hover:opacity-100"
+				className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
 				aria-label="Copy code"
 			>
-				{isCopied ? <Check className="w-5 h-5 text-cursor-accent-green" /> : <Copy className="w-5 h-5" />}
-			</button>
-			<pre className="bg-cursor-surface p-6 rounded-md border border-cursor-border overflow-x-auto">
-				<code className="text-base md:text-lg font-mono text-cursor-text-secondary whitespace-pre-wrap">{code}</code>
+				{copied ? <Check className="w-4 h-4 text-cursor-accent-green" /> : <Copy className="w-4 h-4" />}
+			</Button>
+			<pre className="p-5 md:p-6 overflow-x-auto">
+				<code className="text-base md:text-lg font-sans text-cursor-text-secondary whitespace-pre-wrap">{code}</code>
 			</pre>
 		</div>
 	);
-};
-
-export default CodeBlock;
+}

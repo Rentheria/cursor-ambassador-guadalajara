@@ -2,11 +2,19 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import EventRecap from '@/components/EventRecap';
 import JsonLd from '@/components/JsonLd';
+import Navbar from '@/components/Navbar';
+import RecapBackLink from '@/components/RecapBackLink';
 import { recapsBySlug } from '@/content/recaps';
 import { siteConfig } from '@/content/site.config';
+import Footer from '@/components/Footer';
+import { MarketingColumn, MarketingGrid } from '@/components/layout/MarketingGrid';
 
 interface RecapPageProps {
 	params: Promise<{ slug: string }>;
+}
+
+export function generateStaticParams() {
+	return Object.keys(recapsBySlug).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: RecapPageProps): Promise<Metadata> {
@@ -14,16 +22,23 @@ export async function generateMetadata({ params }: RecapPageProps): Promise<Meta
 	const recap = recapsBySlug[slug];
 	if (!recap) return {};
 
-	const description = recap.summary[0] || `Recap of ${recap.title}`;
+	const description = recap.summary[0] || `${recap.title} — ${recap.date}.`;
+	const ogImage = recap.photos[0]?.src || siteConfig.ogImage || '/og.jpg';
 
 	return {
-		title: `${recap.title} | ${siteConfig.communityName}`,
+		title: recap.title,
 		description,
 		openGraph: {
 			title: recap.title,
 			description,
 			type: 'article',
-			...(recap.photos[0]?.src ? { images: [{ url: recap.photos[0].src, alt: recap.photos[0].alt }] } : {}),
+			images: [{ url: ogImage, alt: recap.photos[0]?.alt || recap.title }],
+		},
+		twitter: {
+			card: 'summary_large_image',
+			title: recap.title,
+			description,
+			images: [ogImage],
 		},
 	};
 }
@@ -69,9 +84,14 @@ export default async function RecapPage({ params }: RecapPageProps) {
 	return (
 		<main className="min-h-screen bg-cursor-bg text-cursor-text">
 			{jsonLd && <JsonLd data={jsonLd} />}
-			<div className="max-w-5xl mx-auto px-6 py-12">
-				<EventRecap recap={recap} />
-			</div>
+			<Navbar />
+			<MarketingGrid className="py-12 md:py-20">
+				<MarketingColumn width="reading">
+					<RecapBackLink />
+					<EventRecap recap={recap} />
+				</MarketingColumn>
+			</MarketingGrid>
+			<Footer />
 		</main>
 	);
 }

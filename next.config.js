@@ -8,16 +8,18 @@ const securityHeaders = [
 		key: 'Permissions-Policy',
 		value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()',
 	},
-	{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-	// Isolates the browsing context to prevent cross-origin window access (Spectre mitigation)
-	{ key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-	// Prevents other origins from embedding this site's resources
-	{ key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
-	// Requires all sub-resources to opt in to cross-origin sharing; credentialless is safer than require-corp for third-party content
-	{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+	{
+		key: 'Strict-Transport-Security',
+		value: 'max-age=63072000; includeSubDomains; preload',
+	},
+	// unsafe-none allows third-party iframes (e.g. LumaCalendar embed) to load
+	{ key: 'Cross-Origin-Opener-Policy', value: 'unsafe-none' },
+	{ key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+	{ key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
 ];
 
 const nextConfig = {
+	allowedDevOrigins: ['127.0.0.1'],
 	async headers() {
 		return [
 			{
@@ -26,11 +28,37 @@ const nextConfig = {
 			},
 		];
 	},
+	async redirects() {
+		return [
+			{
+				source: '/slides/1',
+				destination: '/slides',
+				permanent: true,
+			},
+			{
+				source: '/claim',
+				destination: '/creditos',
+				permanent: false,
+			},
+		];
+	},
 	images: {
 		remotePatterns: [
 			{
 				protocol: 'https',
 				hostname: 'images.unsplash.com',
+			},
+			{
+				protocol: 'https',
+				hostname: 'images.lumacdn.com',
+			},
+			{
+				protocol: 'https',
+				hostname: 'pbs.twimg.com',
+			},
+			{
+				protocol: 'https',
+				hostname: 'abs.twimg.com',
 			},
 		],
 	},

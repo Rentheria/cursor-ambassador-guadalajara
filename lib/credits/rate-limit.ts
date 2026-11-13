@@ -1,0 +1,69 @@
+type Bucket = { timestamps: number[] };
+
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 8;
+
+const buckets = new Map<string, Bucket>();
+
+function prune(bucket: Bucket, now: number): void {
+	bucket.timestamps = bucket.timestamps.filter((stamp) => now - stamp < WINDOW_MS);
+}
+
+function firstHop(value: string | null): string | null {
+	const hop = value?.split(',')[0]?.trim();
+	return hop || null;
+}
+
+export type ClientKeyEnv = Record<string, string | undefined>;
+
+function trustProxy(env: ClientKeyEnv): string {
+	return (env.CREDITS_TRUST_PROXY ?? '').trim().toLowerCase();
+}
+
+/**
+ * Client IP for rate-limit buckets. Platform headers are only used when that
+ * platform is actually in front — otherwise they are client-controlled on
+ * `pnpm start` / a bare Node host.
+ *
+ * - Vercel (`VERCEL` is set): `x-vercel-forwarded-for`
+ * - `CREDITS_TRUST_PROXY=cloudflare`: `cf-connecting-ip` / `true-client-ip`
+ * - `CREDITS_TRUST_PROXY=nginx`: `x-real-ip`
+ */
+export function clientKeyFromRequest(request: Request, env: ClientKeyEnv = process.env): string {
+	if (env.VERCEL) {
+		const vercel = firstHop(request.headers.get('x-vercel-forwarded-for'));
+		if (vercel) return vercel;
+	}
+
+	const proxy = trustProxy(env);
+	if (proxy === 'cloudflare' || proxy === 'cf') {
+		const cf = firstHop(request.headers.get('cf-connecting-ip')) || firstHop(request.headers.get('true-client-ip'));
+		if (cf) return cf;
+	}
+	if (proxy === 'nginx' || proxy === '1' || proxy === 'true') {
+		const realIp = firstHop(request.headers.get('x-real-ip'));
+		if (realIp) return realIp;
+	}
+
+	return 'direct';
+}
+
+export function consumeRateLimit(key: string, now = Date.now()): { ok: true } | { ok: false; retryAfterSec: number } {
+	const bucket = buckets.get(key) ?? { timestamps: [] };
+	prune(bucket, now);
+
+	if (bucket.timestamps.length >= MAX_PER_WINDOW) {
+		const oldest = bucket.timestamps[0] ?? now;
+		const retryAfterSec = Math.max(1, Math.ceil((WINDOW_MS - (now - oldest)) / 1000));
+		buckets.set(key, bucket);
+		return { ok: false, retryAfterSec };
+	}
+
+	bucket.timestamps.push(now);
+	buckets.set(key, bucket);
+	return { ok: true };
+}
+
+export function resetRateLimitForTests(): void {
+	buckets.clear();
+}

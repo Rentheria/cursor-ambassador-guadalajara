@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Copy, Check, PenLine } from 'lucide-react';
+import { Button } from '@/components/ui';
+import { SlideCallout } from './primitives';
 
 interface PromptBlockProps {
 	prompt: string;
 	label?: string;
 }
 
-const PromptBlock: React.FC<PromptBlockProps> = ({ prompt, label = 'Try this in Cursor' }) => {
-	const [isCopied, setIsCopied] = useState(false);
+export default function PromptBlock({ prompt, label = 'Try this in Cursor' }: PromptBlockProps) {
+	const [copied, setCopied] = useState(false);
 
 	const handleCopy = async () => {
 		try {
 			await navigator.clipboard.writeText(prompt);
-			setIsCopied(true);
-			setTimeout(() => setIsCopied(false), 2_000);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2_000);
 		} catch (error) {
 			console.error('Failed to copy prompt', error);
 		}
@@ -27,22 +29,23 @@ const PromptBlock: React.FC<PromptBlockProps> = ({ prompt, label = 'Try this in 
 				<PenLine className="w-4 h-4" />
 				<span>{label}</span>
 			</div>
-			<div className="relative group">
-				<button
+			<SlideCallout variant="blue" className="relative group p-0 overflow-hidden">
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
 					onClick={handleCopy}
-					className="absolute top-4 right-4 p-2 rounded bg-cursor-surface-raised hover:bg-cursor-surface text-cursor-text-muted hover:text-cursor-text transition-opacity opacity-0 group-hover:opacity-100 z-10"
+					className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
 					aria-label="Copy prompt"
 				>
-					{isCopied ? <Check className="w-5 h-5 text-cursor-accent-green" /> : <Copy className="w-5 h-5" />}
-				</button>
-				<pre className="bg-cursor-accent-blue-bg border border-cursor-border-emphasis p-6 rounded-md overflow-x-auto">
-					<code className="text-base md:text-lg font-mono text-cursor-text-secondary whitespace-pre-wrap">
+					{copied ? <Check className="w-4 h-4 text-cursor-accent-green" /> : <Copy className="w-4 h-4" />}
+				</Button>
+				<pre className="p-5 md:p-6 overflow-x-auto border-0 bg-transparent">
+					<code className="text-base md:text-lg font-sans text-cursor-text-secondary whitespace-pre-wrap">
 						{prompt}
 					</code>
 				</pre>
-			</div>
+			</SlideCallout>
 		</div>
 	);
-};
-
-export default PromptBlock;
+}

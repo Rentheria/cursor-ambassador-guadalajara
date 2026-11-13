@@ -1,7 +1,7 @@
 'use client';
 
-import DOMPurify from 'dompurify';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { cardInteractive } from '@/components/ui';
 
 interface DiagramSlideProps {
 	src: string;
@@ -9,81 +9,67 @@ interface DiagramSlideProps {
 	caption?: string;
 }
 
-function isTrustedSvgSrc(src: string): boolean {
-	try {
-		const url = new URL(src, window.location.origin);
-		return url.origin === window.location.origin;
-	} catch {
-		return false;
-	}
-}
+const CURSOR_FONT_STYLE = `<defs><style type="text/css">
+@font-face{font-family:'CursorGothic';src:url('/fonts/CursorGothic-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'CursorGothic';src:url('/fonts/CursorGothic-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap;}
+text,tspan{font-family:CursorGothic,system-ui,sans-serif !important;}
+</style></defs>`;
 
-const DiagramSlide: React.FC<DiagramSlideProps> = ({ src, alt, caption }) => {
+export default function DiagramSlide({ src, alt, caption }: DiagramSlideProps) {
 	const [svgContent, setSvgContent] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (!isTrustedSvgSrc(src)) {
-			setError('Diagram source must be same-origin');
-			setIsLoading(false);
-			return;
-		}
-
 		setIsLoading(true);
 		fetch(src)
 			.then((res) => {
-				if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-				return res.text();
+				if (res.ok) return res.text();
+				throw new Error(`Fetch failed: ${res.status}`);
 			})
 			.then((text) => {
 				setSvgContent(text);
 				setIsLoading(false);
 			})
-			.catch((err) => {
-				setError(err.message);
+			.catch((err: Error) => {
+				setFetchError(err.message);
 				setIsLoading(false);
 			});
 	}, [src]);
 
 	if (isLoading) {
-		return <div className="animate-pulse text-cursor-text-muted py-12 text-center">Loading diagram...</div>;
+		return (
+			<div className="flex items-center justify-center py-16 text-cursor-text-muted text-sm">Loading diagram…</div>
+		);
 	}
 
-	if (error) {
+	if (fetchError) {
 		return (
-			<div className="bg-cursor-accent-red-bg border border-cursor-border-emphasis rounded p-4 text-cursor-accent-red text-center">
-				<p>Error loading diagram</p>
-				<p className="text-sm mt-2">{error}</p>
+			<div className="bg-cursor-accent-red-bg border border-cursor-border-emphasis rounded-md p-4 text-cursor-accent-red text-center text-sm">
+				<p>Error loading diagram: {fetchError}</p>
+				<p className="text-cursor-text-muted mt-1 font-sans text-xs">{src}</p>
 			</div>
 		);
 	}
 
-	if (!svgContent) {
-		return <div className="text-cursor-text-muted text-center py-12">{alt}</div>;
-	}
+	if (!svgContent) return null;
 
-	const modifiedSvg = svgContent.replace(
-		/<svg([^>]*)>/,
-		'<svg$1 width="100%" height="auto" style="max-width:100%;display:block;">',
-	);
-
-	const sanitizedSvg = DOMPurify.sanitize(modifiedSvg, {
-		USE_PROFILES: { svg: true, svgFilters: true },
-	});
+	const safeAlt = alt.replace(/"/g, '');
+	const withFonts = svgContent
+		.replace(/font-family="[^"]*"/g, 'font-family="CursorGothic, system-ui, sans-serif"')
+		.replace(
+			/<svg([^>]*)>/,
+			`<svg$1 width="100%" height="auto" style="max-width:100%;display:block;font-family:CursorGothic,system-ui,sans-serif;" role="img" aria-label="${safeAlt}">${CURSOR_FONT_STYLE}`,
+		);
 
 	return (
-		<div className="flex flex-col items-center justify-center space-y-6">
-			<div className="w-full max-w-4xl">
-				<div
-					className="w-full border border-cursor-border rounded-md overflow-hidden"
-					style={{ minHeight: '300px' }}
-					dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
-				/>
+		<div className="space-y-4">
+			<div className={`${cardInteractive} p-4 md:p-6`}>
+				<div dangerouslySetInnerHTML={{ __html: withFonts }} />
 			</div>
-			{caption ? <p className="text-cursor-text-muted text-lg text-center max-w-3xl">{caption}</p> : null}
+			{caption ? (
+				<p className="text-cursor-text-muted text-base md:text-lg text-center max-w-3xl mx-auto">{caption}</p>
+			) : null}
 		</div>
 	);
-};
-
-export default DiagramSlide;
+}

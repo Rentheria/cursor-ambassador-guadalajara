@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Image from 'next/image';
-import { getPhotos } from '@/lib/photos';
+import { worldEventPhotos } from '@/content/world-events';
 
 const WorldEventsCarousel: React.FC = () => {
-	const photos = getPhotos();
+	const photos = worldEventPhotos;
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -21,12 +21,10 @@ const WorldEventsCarousel: React.FC = () => {
 		<>
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
 				{photos.map((photo, index) => (
-					<motion.div
+					<button
 						key={index}
-						initial={{ opacity: 0, scale: 0.9 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ duration: 0.3, delay: index * 0.05 }}
-						className="relative aspect-square cursor-pointer group overflow-hidden rounded-lg border border-cursor-border"
+						type="button"
+						className="relative aspect-square cursor-pointer overflow-hidden rounded-sm border border-cursor-border text-left"
 						onClick={() => {
 							setCurrentIndex(index);
 							setIsFullscreen(true);
@@ -36,7 +34,7 @@ const WorldEventsCarousel: React.FC = () => {
 							src={photo.src}
 							alt={photo.alt}
 							fill
-							className="object-cover group-hover:scale-110 transition-transform duration-300"
+							className="object-cover"
 							sizes="(max-width: 768px) 50vw, 33vw"
 						/>
 						<div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
@@ -45,7 +43,7 @@ const WorldEventsCarousel: React.FC = () => {
 								{photo.date ? <p className="text-white/80 text-xs">{photo.date}</p> : null}
 							</div>
 						</div>
-					</motion.div>
+					</button>
 				))}
 			</div>
 
@@ -64,7 +62,7 @@ const WorldEventsCarousel: React.FC = () => {
 						>
 							<button
 								onClick={() => setIsFullscreen(false)}
-								className="absolute top-4 right-4 z-10 bg-cursor-bg/80 border border-cursor-border rounded-lg p-2 text-cursor-text hover:bg-cursor-bg transition-colors"
+								className="absolute top-4 right-4 z-10 rounded-full border border-cursor-border bg-cursor-bg/80 p-2 text-cursor-text transition-colors hover:bg-cursor-bg"
 								aria-label="Close"
 							>
 								<X className="w-5 h-5" />
@@ -85,7 +83,7 @@ const WorldEventsCarousel: React.FC = () => {
 								</AnimatePresence>
 							</div>
 
-							<div className="bg-cursor-bg border border-cursor-border rounded-lg p-4 text-center">
+							<div className="rounded-sm border border-cursor-border bg-cursor-bg p-4 text-center">
 								<p className="text-cursor-text font-medium mb-1">{currentPhoto.location}</p>
 								<p className="text-cursor-text-muted text-sm">{currentPhoto.date}</p>
 							</div>
@@ -94,14 +92,14 @@ const WorldEventsCarousel: React.FC = () => {
 								<>
 									<button
 										onClick={() => setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length)}
-										className="absolute left-4 top-1/2 -translate-y-1/2 bg-cursor-bg/80 border border-cursor-border rounded-lg p-2 text-cursor-text hover:bg-cursor-bg transition-colors"
+										className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-cursor-border bg-cursor-bg/80 p-2 text-cursor-text transition-colors hover:bg-cursor-bg"
 										aria-label="Previous photo"
 									>
 										<ChevronLeft className="w-6 h-6" />
 									</button>
 									<button
 										onClick={() => setCurrentIndex((prev) => (prev + 1) % photos.length)}
-										className="absolute right-4 top-1/2 -translate-y-1/2 bg-cursor-bg/80 border border-cursor-border rounded-lg p-2 text-cursor-text hover:bg-cursor-bg transition-colors"
+										className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-cursor-border bg-cursor-bg/80 p-2 text-cursor-text transition-colors hover:bg-cursor-bg"
 										aria-label="Next photo"
 									>
 										<ChevronRight className="w-6 h-6" />

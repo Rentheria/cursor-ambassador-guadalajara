@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Mic, Lightbulb, MessageSquareQuote, Link as LinkIcon } from 'lucide-react';
 import PhotoGallery from '@/components/PhotoGallery';
@@ -16,14 +15,9 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 	const { t } = useI18n();
 
 	return (
-		<motion.section
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5 }}
-			className="mb-8"
-		>
-			<div className="bg-[#1B1913] border border-cursor-border rounded-lg p-8">
-				<h2 className="text-xl font-semibold text-cursor-text mb-2">{recap.title}</h2>
+		<section className="mb-8">
+			<div className="rounded-sm border border-cursor-border bg-cursor-surface p-6 md:p-8">
+				<h1 className="cursor-section-title mb-2 text-cursor-text">{recap.title}</h1>
 				<p className="text-cursor-text-muted text-sm mb-6">{recap.date}</p>
 
 				{recap.host ? (
@@ -35,13 +29,7 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 							rel="noopener noreferrer"
 							className="text-cursor-text hover:underline inline-flex items-center gap-1.5"
 						>
-							<Image
-								src={recap.host.logo}
-								alt={recap.host.name}
-								width={18}
-								height={18}
-								className="rounded-full"
-							/>
+							<Image src={recap.host.logo} alt={recap.host.name} width={18} height={18} className="rounded-full" />
 							{recap.host.name}
 						</a>
 					</div>
@@ -73,13 +61,7 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 								>
 									{speaker.photo ? (
 										<div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-cursor-border-emphasis">
-											<Image
-												src={speaker.photo}
-												alt={speaker.name}
-												fill
-												className="object-cover"
-												sizes="40px"
-											/>
+											<Image src={speaker.photo} alt={speaker.name} fill className="object-cover" sizes="40px" />
 										</div>
 									) : null}
 									<div className="min-w-0">
@@ -112,10 +94,7 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 						</div>
 						<div className="grid gap-3 sm:grid-cols-2">
 							{recap.projects.map((project) => (
-								<div
-									key={project.name}
-									className="bg-cursor-bg-dark border border-cursor-border rounded-md p-4"
-								>
+								<div key={project.name} className="bg-cursor-bg-dark border border-cursor-border rounded-md p-4">
 									{project.url ? (
 										<a
 											href={project.url}
@@ -153,13 +132,9 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 									key={index}
 									className="bg-cursor-bg-dark border-l-2 border-cursor-accent-purple/40 rounded-r-md px-4 py-3"
 								>
-									<p className="text-cursor-text-secondary text-sm italic">
-										&ldquo;{highlight.quote}&rdquo;
-									</p>
+									<p className="text-cursor-text-secondary text-sm italic">&ldquo;{highlight.quote}&rdquo;</p>
 									{highlight.author ? (
-										<p className="text-cursor-text-faint text-xs mt-1.5">
-											&mdash; {highlight.author}
-										</p>
+										<p className="text-cursor-text-faint text-xs mt-1.5">&mdash; {highlight.author}</p>
 									) : null}
 								</blockquote>
 							))}
@@ -217,7 +192,7 @@ const EventRecap: React.FC<EventRecapProps> = ({ recap }) => {
 					</div>
 				) : null}
 			</div>
-		</motion.section>
+		</section>
 	);
 };
 

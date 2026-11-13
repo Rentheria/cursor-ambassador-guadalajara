@@ -9,13 +9,19 @@ Thanks for helping improve the Cursor Ambassador Site Template.
 3. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
-4. Start development:
+4. Copy environment defaults:
 
    ```bash
-   npm run dev
+   cp .env.example .env.local
+   ```
+
+5. Start development:
+
+   ```bash
+   pnpm dev
    ```
 
 ## Making Changes
@@ -25,6 +31,27 @@ Thanks for helping improve the Cursor Ambassador Site Template.
 - Use TypeScript for all code changes.
 - Keep styling in Tailwind utility classes and existing design tokens.
 - Avoid hardcoding city/community-specific values in `components/`.
+- Keep the required template footer credit in `components/Footer.tsx` (see `NOTICE` / `ATTRIBUTION.md`).
+- Do not re-add third-party event photography without credit and permission.
+- Do not change the LICENSE copyright holder without discussion.
+
+## Verification
+
+Before submitting a PR, run:
+
+```bash
+pnpm verify
+```
+
+This runs format check, lint, typecheck, bento layout validation, credits unit tests, and production build. Use `pnpm test:e2e` for the `/creditos` Playwright smoke.
+
+## Adding optional community tweets
+
+1. Add status URLs to `content/community-tweets.ts` (replace the example seed).
+2. Set `sections.communityTweets: true` in `content/site.config.ts`.
+3. Add translation keys under `home.communityTweets*` in each locale JSON if you use i18n.
+
+Only allowlisted tweet IDs are served by `/api/tweets/[id]`.
 
 ## Adding a New Locale
 
@@ -37,12 +64,7 @@ Thanks for helping improve the Cursor Ambassador Site Template.
 
 1. Create a focused branch from `main`.
 2. Keep changes scoped to one concern where possible.
-3. Run build before submitting:
-
-   ```bash
-   npm run build
-   ```
-
+3. Run `pnpm verify` before submitting.
 4. Open a PR with:
    - A clear summary
    - Screenshots for UI changes

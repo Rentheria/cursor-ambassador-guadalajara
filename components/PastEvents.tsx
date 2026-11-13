@@ -1,143 +1,78 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, Users, ArrowRight } from 'lucide-react';
 import { pastEvents } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
-
-const containerVariants = {
-	hidden: {},
-	visible: { transition: { staggerChildren: 0.1 } },
-};
-
-const itemVariants = {
-	hidden: { opacity: 0, y: 20 },
-	visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
+import { cardInteractive } from '@/components/ui';
 
 const PastEvents: React.FC = () => {
-	const { t, locale } = useI18n();
+	const { t } = useI18n();
 
 	if (pastEvents.length === 0) {
 		return null;
 	}
 
 	return (
-		<motion.section
-			id="recaps"
-			initial={{ opacity: 0, y: 20 }}
-			whileInView={{ opacity: 1, y: 0 }}
-			viewport={{ once: true, margin: '-50px' }}
-			transition={{ duration: 0.5 }}
-			className="mb-16 scroll-mt-20"
-		>
-			<p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
-				{t('home.pastEvents')}
-			</p>
-			<h2 className="text-2xl md:text-3xl font-bold text-cursor-text mb-6">
-				{t('home.pastEventsHeading')}
-			</h2>
+		<section id="recaps" className="mb-20 scroll-mt-20">
+			<p className="cursor-eyebrow mb-2">{t('home.pastEvents')}</p>
+			<h2 className="cursor-section-title mb-8 text-cursor-text">{t('home.pastEventsHeading')}</h2>
 
-			<motion.div
-				variants={containerVariants}
-				initial="hidden"
-				whileInView="visible"
-				viewport={{ once: true, margin: '-50px' }}
-				className="space-y-6 -mx-3 sm:mx-0"
-			>
+			<div className="space-y-5">
 				{pastEvents.map((event) => {
 					if (!event.recapPath) return null;
 
-					const displayDate = new Date(`${event.date}T00:00:00`).toLocaleDateString(
-						locale === 'en' ? 'en-US' : locale,
-						{
-							year: 'numeric',
-							month: 'long',
-							day: 'numeric',
-						},
-					);
-
-					const hasGallery = event.galleryImages && event.galleryImages.length > 0;
-
 					return (
-						<motion.div key={event.id} variants={itemVariants}>
-							<Link href={event.recapPath} className="block group">
-								<div className="relative bg-[#1B1913] border border-cursor-border rounded-none sm:rounded-md overflow-hidden transition-all duration-300 hover:border-[#f54e00]/50 hover:shadow-[0_0_30px_rgba(245,78,0,0.12)]">
-									{/* Glow backdrop */}
-									<div className="pointer-events-none absolute -inset-px sm:rounded-md bg-[radial-gradient(ellipse_at_bottom,rgba(245,78,0,0.06),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
-									{event.thumbnail ? (
-										<div className="relative">
-											<div
-												className={`aspect-[2/1] overflow-hidden ${hasGallery ? 'grid grid-cols-3 gap-1' : ''}`}
-											>
-												<div className={`relative ${hasGallery ? 'col-span-2' : ''}`}>
-													<Image
-														src={event.thumbnail}
-														alt={event.title}
-														fill
-														className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-														sizes="(max-width: 768px) 100vw, 60vw"
-													/>
-												</div>
-												{hasGallery &&
-													event.galleryImages!.slice(0, 2).map((img, i) => (
-														<div key={i} className="relative">
-															<Image
-																src={img}
-																alt=""
-																fill
-																className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-																sizes="(max-width: 768px) 33vw, 20vw"
-															/>
-														</div>
-													))}
-											</div>
-											{event.host ? (
-												<div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm rounded-lg p-2 flex items-center gap-2">
-													<Image
-														src={event.host.logo}
-														alt={event.host.name}
-														width={20}
-														height={20}
-														className="rounded-full"
-													/>
-													<span className="text-xs text-white">{event.host.name}</span>
-												</div>
-											) : null}
-										</div>
-									) : null}
-
-									<div className="px-5 py-4">
-										<h3 className="text-lg text-cursor-text font-medium mb-1.5">{event.title}</h3>
-										<div className="flex flex-wrap items-center gap-3 text-sm text-cursor-text-muted mb-1.5">
-											<div className="flex items-center gap-1.5">
-												<Calendar className="w-4 h-4" />
-												<span>{displayDate}</span>
-											</div>
-											{event.attendees ? (
-												<div className="flex items-center gap-1.5">
-													<Users className="w-4 h-4" />
-													<span>
-														{t('home.attendees', { count: String(event.attendees) })}
-													</span>
-												</div>
-											) : null}
-										</div>
-										<div className="flex items-center gap-2 text-sm text-[#f54e00]">
-											<span>{t('home.viewRecap')}</span>
-											<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200 ease-out" />
-										</div>
+						<Link key={event.id} href={event.recapPath} className={`${cardInteractive} group block`}>
+							<article className={event.thumbnail ? 'grid md:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.9fr)]' : ''}>
+								{event.thumbnail ? (
+									<div className="relative aspect-[16/10] overflow-hidden md:aspect-auto md:min-h-[280px]">
+										<Image
+											src={event.thumbnail}
+											alt={event.title}
+											fill
+											className="object-cover"
+											sizes="(max-width: 768px) 100vw, 720px"
+										/>
 									</div>
+								) : null}
+								<div className="flex flex-col justify-between gap-6 p-6 md:p-8">
+									<div className="flex items-start justify-between gap-4">
+										<div className="min-w-0">
+											<p className="text-sm text-cursor-text-muted">
+												{event.displayDate}
+												{event.attendees ? ` · ${t('home.attendees', { count: String(event.attendees) })}` : ''}
+											</p>
+											<h3 className="mt-2 text-2xl font-normal tracking-tight text-cursor-text">{event.title}</h3>
+											<p className="mt-2 text-sm text-cursor-text-muted">
+												{event.host ? `${event.host.name} · ` : ''}
+												{event.location}
+											</p>
+										</div>
+
+										{event.host?.logo ? (
+											<div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm border border-cursor-border bg-cursor-bg p-2.5">
+												<Image
+													src={event.host.logo}
+													alt={event.host.name}
+													width={40}
+													height={40}
+													className="h-full w-full object-contain"
+												/>
+											</div>
+										) : null}
+									</div>
+									<p className="text-sm text-cursor-accent-orange">
+										{t('home.viewRecap')} <span aria-hidden="true">→</span>
+									</p>
 								</div>
-							</Link>
-						</motion.div>
+							</article>
+						</Link>
 					);
 				})}
-			</motion.div>
-		</motion.section>
+			</div>
+		</section>
 	);
 };
 

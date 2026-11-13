@@ -1,17 +1,53 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/react';
-import { I18nProvider } from '@/lib/i18n';
+import Providers from '@/components/Providers';
 import { siteConfig } from '@/content/site.config';
+import { THEME_BOOT_SCRIPT } from '@/lib/theme-boot';
 import './globals.css';
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const title = siteConfig.communityName;
+const description =
+	siteConfig.description || `Cursor meetups and workshops in ${siteConfig.city}, ${siteConfig.country}.`;
+const ogImage = siteConfig.ogImage || '/og.jpg';
+
 export const metadata: Metadata = {
-	title: `${siteConfig.communityName} | Cursor Ambassador Site`,
-	description: 'Reusable Cursor Ambassador website template for local communities.',
+	metadataBase: new URL(siteUrl),
+	title: {
+		default: title,
+		template: `%s | ${siteConfig.communityName}`,
+	},
+	description,
+	alternates: {
+		canonical: siteUrl,
+	},
 	openGraph: {
-		title: siteConfig.communityName,
-		description: 'Reusable Cursor Ambassador website template for local communities.',
+		title,
+		description,
 		type: 'website',
+		url: siteUrl,
+		siteName: siteConfig.communityName,
+		locale:
+			siteConfig.defaultLocale === 'en'
+				? 'en_US'
+				: siteConfig.defaultLocale === 'es'
+					? 'es_MX'
+					: siteConfig.defaultLocale,
+		images: [
+			{
+				url: ogImage,
+				width: 1200,
+				height: 630,
+				alt: `${siteConfig.communityName} in ${siteConfig.city}`,
+			},
+		],
+	},
+	twitter: {
+		card: 'summary_large_image',
+		title,
+		description,
+		images: [ogImage],
 	},
 };
 
@@ -20,10 +56,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	const nonce = headersList.get('x-nonce') ?? '';
 
 	return (
-		<html lang={siteConfig.defaultLocale}>
+		<html lang={siteConfig.defaultLocale} suppressHydrationWarning>
+			<head>
+				<script
+					nonce={nonce || undefined}
+					suppressHydrationWarning
+					dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+				/>
+			</head>
 			<body className="antialiased">
-				<I18nProvider>{children}</I18nProvider>
-				<Analytics nonce={nonce} />
+				<Providers>{children}</Providers>
+				<Analytics {...({ nonce } as React.ComponentProps<typeof Analytics>)} />
 			</body>
 		</html>
 	);

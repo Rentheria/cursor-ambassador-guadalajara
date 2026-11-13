@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280" fill="none">
+  <rect width="800" height="280" fill="#14120b"/>
+
+  <rect x="40" y="90" width="180" height="90" rx="8" fill="#1c1a12" stroke="rgba(237,236,236,0.15)"/>
+  <text x="130" y="130" font-family="CursorGothic, system-ui, sans-serif" font-size="16" fill="#edecec" text-anchor="middle">Step A</text>
+  <text x="130" y="155" font-family="CursorGothic, system-ui, sans-serif" font-size="12" fill="rgba(237,236,236,0.55)" text-anchor="middle">your label</text>
+
+  <path d="M230 135 L290 135" stroke="rgba(237,236,236,0.35)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="300" y="90" width="180" height="90" rx="8" fill="#1c1a12" stroke="rgba(245,78,0,0.4)"/>
+  <text x="390" y="130" font-family="CursorGothic, system-ui, sans-serif" font-size="16" fill="#f54e00" text-anchor="middle">Step B</text>
+  <text x="390" y="155" font-family="CursorGothic, system-ui, sans-serif" font-size="12" fill="rgba(237,236,236,0.55)" text-anchor="middle">your label</text>
+
+  <path d="M490 135 L550 135" stroke="rgba(237,236,236,0.35)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="560" y="90" width="180" height="90" rx="8" fill="#1c1a12" stroke="rgba(168,196,160,0.35)"/>
+  <text x="650" y="130" font-family="CursorGothic, system-ui, sans-serif" font-size="16" fill="#a8c4a0" text-anchor="middle">Step C</text>
+  <text x="650" y="155" font-family="CursorGothic, system-ui, sans-serif" font-size="12" fill="rgba(237,236,236,0.55)" text-anchor="middle">your label</text>
+
+  <text x="400" y="240" font-family="CursorGothic, system-ui, sans-serif" font-size="13" fill="rgba(237,236,236,0.45)" text-anchor="middle">Replace this SVG  keep font-family CursorGothic</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6" fill="none" stroke="rgba(237,236,236,0.35)" stroke-width="1.5"/>
+    </marker>
+  </defs>
+</svg>

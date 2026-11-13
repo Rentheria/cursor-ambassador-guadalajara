@@ -6,5 +6,5 @@
 	"semi": true,
 	"singleQuote": true,
 	"trailingComma": "all",
-	"ignorePatterns": [".next/**", "out/**", "build/**", "node_modules/**"]
+	"ignorePatterns": [".next/**", "out/**", "build/**", "node_modules/**", ".pnpm-store/**"]
 }
