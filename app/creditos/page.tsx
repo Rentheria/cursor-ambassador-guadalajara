@@ -15,7 +15,7 @@ export default function CreditosPage() {
 	return (
 		<main className="min-h-screen scroll-smooth bg-cursor-bg text-cursor-text">
 			<Navbar />
-			<div className="py-16 md:py-24">
+			<div className="flex min-h-[calc(100svh-52px)] flex-col justify-center py-10 md:py-16">
 				<MarketingGrid>
 					<MarketingColumn width="reading">
 						<CreditsClaimView />

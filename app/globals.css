@@ -225,6 +225,17 @@
 			scroll-behavior: auto !important;
 		}
 	}
+
+	@media print {
+		@page {
+			margin: 12mm;
+		}
+
+		body {
+			background: #fff !important;
+			color: #26251e !important;
+		}
+	}
 }
 
 @layer components {

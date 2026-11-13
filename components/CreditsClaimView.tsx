@@ -3,20 +3,28 @@
 import CreditsClaimForm from '@/components/CreditsClaimForm';
 import { useI18n } from '@/lib/i18n';
 import { siteConfig } from '@/content/site.config';
+import { upcomingEvents } from '@/content/events';
 
 export default function CreditsClaimView() {
 	const { t } = useI18n();
+	const kickoff = upcomingEvents[0];
 
 	return (
-		<>
-			<p className="cursor-eyebrow mb-2">{t('credits.eyebrow', { city: siteConfig.city })}</p>
-			<h1 className="cursor-display max-w-[16ch] text-cursor-text">{t('credits.heading')}</h1>
-			<p className="mt-5 max-w-xl text-base leading-relaxed text-cursor-text-secondary md:text-lg">
-				{t('credits.description')}
-			</p>
-			<div className="mt-10">
-				<CreditsClaimForm />
-			</div>
-		</>
+		<div className="flex flex-col gap-10 md:gap-12">
+			<header>
+				<p className="cursor-eyebrow mb-3">{t('credits.eventKicker', { city: siteConfig.city })}</p>
+				<h1 className="cursor-display max-w-[16ch] text-cursor-text" data-testid="credits-hero">
+					{kickoff?.title ?? t('credits.heading')}
+				</h1>
+				<p className="mt-4 text-base text-cursor-text-secondary md:text-lg">
+					{kickoff?.displayDate}
+					{kickoff?.location ? <span className="text-cursor-text-faint"> · {kickoff.location}</span> : null}
+				</p>
+				<p className="mt-5 max-w-xl text-base leading-relaxed text-cursor-text-secondary md:text-lg">
+					{t('credits.description')}
+				</p>
+			</header>
+			<CreditsClaimForm />
+		</div>
 	);
 }
