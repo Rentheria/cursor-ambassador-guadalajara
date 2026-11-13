@@ -3,6 +3,7 @@ import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ADMIN_COOKIE, ADMIN_SESSION_HOURS, getCreditsRuntimeConfig } from './config';
+import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
 
 function hmac(secret: string, payload: string): string {
 	return createHmac('sha256', secret).update(payload).digest('hex');
@@ -49,39 +50,46 @@ export function readAdminToken(request: Request): string | undefined {
 	return decodeURIComponent(match.slice(ADMIN_COOKIE.length + 1));
 }
 
-export function isAdminRequest(request: Request): boolean {
+function hasBearerAdmin(request: Request): boolean {
 	const bearer = request.headers.get('authorization');
-	if (bearer?.toLowerCase().startsWith('bearer ')) {
-		const token = bearer.slice(7).trim();
-		if (verifyAdminPassword(token) || verifyAdminToken(token)) return true;
-	}
-	return verifyAdminToken(readAdminToken(request));
+	if (!bearer?.toLowerCase().startsWith('bearer ')) return false;
+	const token = bearer.slice(7).trim();
+	return verifyAdminPassword(token) || verifyAdminToken(token);
+}
+
+export function isAdminRequest(request: Request): boolean {
+	if (hasBearerAdmin(request)) return true;
+	if (!verifyAdminToken(readAdminToken(request))) return false;
+	return isSameOriginRequest(request);
 }
 
 export function unauthorized(): NextResponse {
 	return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 }
 
-function cookieSecure(): boolean {
-	return getCreditsRuntimeConfig().siteUrl.startsWith('https://');
+export function verifyClaimToken(candidate: string | null | undefined): boolean {
+	const expected = getCreditsRuntimeConfig().claimToken;
+	if (!expected) return true;
+	if (!candidate) return false;
+	return safeEqual(hmac('credits-claim', expected), hmac('credits-claim', candidate));
 }
 
-export function attachAdminCookie(response: NextResponse, token: string): NextResponse {
+export function attachAdminCookie(response: NextResponse, token: string, request: Request): NextResponse {
 	response.cookies.set(ADMIN_COOKIE, token, {
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: cookieSecure(),
+		secure: cookieSecureFromRequest(request),
 		path: '/',
 		maxAge: ADMIN_SESSION_HOURS * 60 * 60,
 	});
 	return response;
 }
 
-export function clearAdminCookie(response: NextResponse): NextResponse {
+export function clearAdminCookie(response: NextResponse, request: Request): NextResponse {
 	response.cookies.set(ADMIN_COOKIE, '', {
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: cookieSecure(),
+		secure: cookieSecureFromRequest(request),
 		path: '/',
 		maxAge: 0,
 	});

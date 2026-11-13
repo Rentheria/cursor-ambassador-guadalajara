@@ -1,7 +1,7 @@
 'use client';
 
 import CreditsClaimForm from '@/components/CreditsClaimForm';
-import { Button, TextLink } from '@/components/ui';
+import { TextLink } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { siteConfig } from '@/content/site.config';
 
@@ -24,12 +24,6 @@ export default function CreditsClaimView() {
 					{t('credits.organizerLink')}
 				</TextLink>
 			</p>
-			<div className="mt-8">
-				<Button href="/creditos/qr" variant="secondary" size="sm">
-					{t('credits.qrCta')}
-					<span aria-hidden="true">→</span>
-				</Button>
-			</div>
 		</>
 	);
 }

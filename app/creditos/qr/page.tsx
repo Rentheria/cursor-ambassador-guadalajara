@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { TextLink } from '@/components/ui';
 import { MarketingColumn, MarketingGrid } from '@/components/layout/MarketingGrid';
-import { publicClaimUrl } from '@/lib/credits/config';
+import { ADMIN_COOKIE, CREDITS_ADMIN_PATH, publicClaimUrl } from '@/lib/credits/config';
+import { passwordConfigured, verifyAdminToken } from '@/lib/credits/auth';
 import { claimQrSvg } from '@/lib/credits/qr';
 import { siteConfig } from '@/content/site.config';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
 	title: 'QR de créditos',
@@ -13,6 +18,13 @@ export const metadata: Metadata = {
 };
 
 export default async function CreditosQrPage() {
+	if (passwordConfigured()) {
+		const token = (await cookies()).get(ADMIN_COOKIE)?.value;
+		if (!verifyAdminToken(token)) {
+			redirect(CREDITS_ADMIN_PATH);
+		}
+	}
+
 	const url = publicClaimUrl();
 	const svg = await claimQrSvg(url);
 

@@ -29,5 +29,5 @@ export async function POST(request: Request) {
 	}
 
 	const response = NextResponse.json({ ok: true });
-	return attachAdminCookie(response, createAdminToken());
+	return attachAdminCookie(response, createAdminToken(), request);
 }

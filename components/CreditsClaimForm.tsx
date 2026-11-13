@@ -4,7 +4,25 @@ import { FormEvent, useState } from 'react';
 import { Button, cardBase } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 
-type ClaimStatus = 'ok' | 'invalid' | 'not_registered' | 'exhausted' | 'unavailable' | 'rate_limited';
+type ClaimStatus = 'ok' | 'invalid' | 'not_registered' | 'exhausted' | 'unavailable' | 'rate_limited' | 'forbidden';
+
+function claimTokenFromBrowser(): string {
+	if (typeof window === 'undefined') return '';
+	const fromQuery = new URLSearchParams(window.location.search).get('k') ?? '';
+	if (fromQuery) {
+		try {
+			sessionStorage.setItem('credits-claim-k', fromQuery);
+		} catch {
+			// private mode / blocked storage
+		}
+		return fromQuery;
+	}
+	try {
+		return sessionStorage.getItem('credits-claim-k') ?? '';
+	} catch {
+		return '';
+	}
+}
 
 type ClaimResponse = {
 	status: ClaimStatus;
@@ -27,10 +45,11 @@ export default function CreditsClaimForm() {
 		setPending(true);
 		setResult(null);
 		try {
+			const token = claimTokenFromBrowser();
 			const response = await fetch('/api/credits/claim', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email }),
+				body: JSON.stringify({ email, ...(token ? { token } : {}) }),
 			});
 			const body = (await response.json()) as ClaimResponse;
 			setResult(body);
@@ -118,6 +137,13 @@ export default function CreditsClaimForm() {
 				<p className="mt-4 text-sm text-cursor-text-muted" data-testid="credits-unavailable">
 					{t('credits.unavailable')}
 				</p>
+			) : null}
+
+			{result?.status === 'forbidden' ? (
+				<div className={`${cardBase} mt-8 p-5`} data-testid="credits-forbidden">
+					<h2 className="text-xl text-cursor-text">{t('credits.needQrHeading')}</h2>
+					<p className="mt-2 text-sm leading-relaxed text-cursor-text-secondary">{t('credits.needQrBody')}</p>
+				</div>
 			) : null}
 		</div>
 	);

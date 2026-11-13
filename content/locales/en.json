@@ -118,6 +118,8 @@
 		"invalid": "Enter a valid email.",
 		"rateLimited": "Too many attempts from this network. Wait a few minutes and try again.",
 		"unavailable": "Credits are not open yet. Please see the organizers.",
+		"needQrHeading": "Scan the event QR",
+		"needQrBody": "Credits are only handed out from the printed QR at the venue. See the organizers if you do not have it.",
 		"organizerHint": "Organizing the event?",
 		"organizerLink": "Organizer panel",
 		"qrCta": "Printable QR page",

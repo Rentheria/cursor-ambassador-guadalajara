@@ -12,7 +12,8 @@ import {
 	toCsv,
 } from './csv';
 import { emailsMatch, normalizeEmail } from './email';
-import { consumeRateLimit, resetRateLimitForTests } from './rate-limit';
+import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
+import { clientKeyFromRequest, consumeRateLimit, resetRateLimitForTests } from './rate-limit';
 
 const sampleCsv = readFileSync(path.join(process.cwd(), 'fixtures/credits/luma-guests.sample.csv'), 'utf8');
 const samplePool = readFileSync(path.join(process.cwd(), 'fixtures/credits/codes.sample.txt'), 'utf8');
@@ -165,6 +166,14 @@ describe('code assignment', () => {
 		const start = createCreditsState({ mode: 'pool', pool });
 		assert.equal(claimCredit(start, 'ana.builder@example.com', now).result.status, 'unavailable');
 	});
+
+	it('caps stored invalid emails at 254 characters', () => {
+		const start = createCreditsState({ mode: 'pool', guests, pool });
+		const huge = `${'a'.repeat(400)} not-an-email`;
+		const next = claimCredit(start, huge, now);
+		assert.equal(next.result.status, 'invalid');
+		assert.equal(next.state.failedAttempts[0]?.email.length, 254);
+	});
 });
 
 describe('rate limit', () => {
@@ -177,5 +186,54 @@ describe('rate limit', () => {
 		const blocked = consumeRateLimit('ip-1', now + 9);
 		assert.equal(blocked.ok, false);
 		assert.equal(consumeRateLimit('ip-2', now).ok, true);
+	});
+
+	it('ignores client-supplied X-Forwarded-For without a platform IP header', () => {
+		const spoofed = new Request('http://localhost/api/credits/claim', {
+			headers: { 'x-forwarded-for': '203.0.113.9, 10.0.0.1' },
+		});
+		assert.equal(clientKeyFromRequest(spoofed), 'direct');
+
+		const vercel = new Request('http://localhost/api/credits/claim', {
+			headers: {
+				'x-forwarded-for': '203.0.113.9',
+				'x-vercel-forwarded-for': '198.51.100.20',
+			},
+		});
+		assert.equal(clientKeyFromRequest(vercel), '198.51.100.20');
+
+		const realIp = new Request('http://localhost/api/credits/claim', {
+			headers: { 'x-real-ip': '192.0.2.44' },
+		});
+		assert.equal(clientKeyFromRequest(realIp), '192.0.2.44');
+	});
+});
+
+describe('admin origin', () => {
+	it('accepts same-origin Origin and rejects a foreign Origin', () => {
+		const ok = new Request('http://localhost:3011/api/credits/admin', {
+			headers: { host: 'localhost:3011', origin: 'http://localhost:3011' },
+		});
+		assert.equal(isSameOriginRequest(ok), true);
+
+		const cross = new Request('http://localhost:3011/api/credits/admin', {
+			headers: {
+				host: 'localhost:3011',
+				origin: 'https://evil.example',
+			},
+		});
+		assert.equal(isSameOriginRequest(cross), false);
+	});
+
+	it('sets Secure from the request scheme, not from SITE_URL', () => {
+		const https = new Request('https://cursorguadalajara.com/api/credits/admin/login', {
+			headers: { 'x-forwarded-proto': 'https' },
+		});
+		assert.equal(cookieSecureFromRequest(https), true);
+
+		const http = new Request('http://127.0.0.1:3011/api/credits/admin/login', {
+			headers: { 'x-forwarded-proto': 'http' },
+		});
+		assert.equal(cookieSecureFromRequest(http), false);
 	});
 });

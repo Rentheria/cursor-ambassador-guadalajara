@@ -99,7 +99,11 @@ export default function CreditsAdminPanel() {
 	}
 
 	async function downloadExport(kind: 'claimed' | 'unclaimed' | 'failed') {
-		const response = await fetch(`/api/credits/admin/export?kind=${kind}`);
+		const response = await fetch('/api/credits/admin/export', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ kind }),
+		});
 		if (!response.ok) {
 			setError(t('credits.adminLoadError'));
 			return;
@@ -143,9 +147,14 @@ export default function CreditsAdminPanel() {
 				<p className="text-sm text-cursor-text-muted">
 					{t('credits.adminStore')}: {summary?.storeKind} · {t('credits.adminMode')}: {summary?.mode}
 				</p>
-				<Button type="button" variant="secondary" size="sm" onClick={() => void onLogout()}>
-					{t('credits.adminLogout')}
-				</Button>
+				<div className="flex flex-wrap gap-2">
+					<Button href="/creditos/qr" variant="secondary" size="sm">
+						{t('credits.qrCta')}
+					</Button>
+					<Button type="button" variant="secondary" size="sm" onClick={() => void onLogout()}>
+						{t('credits.adminLogout')}
+					</Button>
+				</div>
 			</div>
 
 			<div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

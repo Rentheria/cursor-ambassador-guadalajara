@@ -92,14 +92,36 @@ async function main() {
 		if (!cookie) throw new Error('admin login missing set-cookie');
 
 		const summaryRes = await fetchWithTimeout(`${BASE}/api/credits/admin`, {
-			headers: { cookie },
+			headers: { cookie, Origin: BASE, Host: new URL(BASE).host },
 		});
 		const summary = await summaryRes.json();
 		if (!summary.claimed?.some((row) => row.email === 'ana.builder@example.com')) {
 			throw new Error(`admin summary missing claim: ${JSON.stringify(summary)}`);
 		}
 
-		console.log('smoke-credits-api: OK (claim, reclaim, not_registered, admin)');
+		const exportGet = await fetchWithTimeout(`${BASE}/api/credits/admin/export?kind=claimed`, {
+			headers: { cookie, Origin: BASE, Host: new URL(BASE).host },
+		});
+		if (exportGet.status !== 405) {
+			throw new Error(`expected export GET 405, got ${exportGet.status}`);
+		}
+
+		const exportRes = await fetchWithTimeout(`${BASE}/api/credits/admin/export`, {
+			method: 'POST',
+			headers: {
+				cookie,
+				Origin: BASE,
+				Host: new URL(BASE).host,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ kind: 'claimed' }),
+		});
+		const csv = await exportRes.text();
+		if (!exportRes.ok || !csv.includes('ana.builder@example.com')) {
+			throw new Error(`export POST failed ${exportRes.status} ${csv.slice(0, 200)}`);
+		}
+
+		console.log('smoke-credits-api: OK (claim, reclaim, not_registered, admin, export POST)');
 	} finally {
 		proc.kill('SIGTERM');
 		await delay(500);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { claimCredit } from '@/lib/credits/assign';
+import { verifyClaimToken } from '@/lib/credits/auth';
 import { clientKeyFromRequest } from '@/lib/credits/rate-limit';
 import { limitClient } from '@/lib/credits/limit';
 import { updateCreditsState } from '@/lib/credits/store';
@@ -18,11 +19,21 @@ export async function POST(request: Request) {
 	}
 
 	let email = '';
+	let token: string | undefined;
 	try {
-		const body = (await request.json()) as { email?: unknown };
+		const body = (await request.json()) as { email?: unknown; token?: unknown };
 		email = typeof body.email === 'string' ? body.email : '';
+		token = typeof body.token === 'string' ? body.token : undefined;
 	} catch {
 		return NextResponse.json({ status: 'invalid' }, { status: 400 });
+	}
+
+	if (!token) {
+		token = new URL(request.url).searchParams.get('k') ?? undefined;
+	}
+
+	if (!verifyClaimToken(token)) {
+		return NextResponse.json({ status: 'forbidden' }, { status: 403 });
 	}
 
 	const captured: { result: ClaimResult } = { result: { status: 'unavailable' } };

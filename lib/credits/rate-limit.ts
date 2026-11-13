@@ -9,13 +9,23 @@ function prune(bucket: Bucket, now: number): void {
 	bucket.timestamps = bucket.timestamps.filter((stamp) => now - stamp < WINDOW_MS);
 }
 
+function firstHop(value: string | null): string | null {
+	const hop = value?.split(',')[0]?.trim();
+	return hop || null;
+}
+
+/**
+ * Prefer platform-set client IPs. Ignore client-supplied `X-Forwarded-For`
+ * when no trusted proxy header is present (otherwise the rate limit is trivial to rotate).
+ */
 export function clientKeyFromRequest(request: Request): string {
-	const forwarded = request.headers.get('x-forwarded-for');
-	if (forwarded) {
-		const first = forwarded.split(',')[0]?.trim();
-		if (first) return first;
-	}
-	return request.headers.get('x-real-ip')?.trim() || 'local';
+	const trusted =
+		firstHop(request.headers.get('x-vercel-forwarded-for')) ||
+		firstHop(request.headers.get('cf-connecting-ip')) ||
+		firstHop(request.headers.get('true-client-ip')) ||
+		firstHop(request.headers.get('x-real-ip'));
+	if (trusted) return trusted;
+	return 'direct';
 }
 
 export function consumeRateLimit(key: string, now = Date.now()): { ok: true } | { ok: false; retryAfterSec: number } {

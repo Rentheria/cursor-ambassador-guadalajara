@@ -15,6 +15,7 @@ export const ADMIN_SESSION_HOURS = 12;
 export type CreditsRuntimeConfig = {
 	mode: CreditsMode;
 	adminPassword: string;
+	claimToken: string;
 	storePath: string;
 	kvUrl: string;
 	kvToken: string;
@@ -35,6 +36,7 @@ export function getCreditsRuntimeConfig(): CreditsRuntimeConfig {
 	return {
 		mode,
 		adminPassword: trimEnv('CREDITS_ADMIN_PASSWORD'),
+		claimToken: trimEnv('CREDITS_CLAIM_TOKEN'),
 		storePath,
 		kvUrl,
 		kvToken,
@@ -76,5 +78,8 @@ export async function ensureStoreDir(filePath: string): Promise<void> {
 }
 
 export function publicClaimUrl(): string {
-	return `${getCreditsRuntimeConfig().siteUrl}${CREDITS_CLAIM_PATH}`;
+	const { siteUrl, claimToken } = getCreditsRuntimeConfig();
+	const url = `${siteUrl}${CREDITS_CLAIM_PATH}`;
+	if (!claimToken) return url;
+	return `${url}?k=${encodeURIComponent(claimToken)}`;
 }

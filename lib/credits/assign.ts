@@ -58,7 +58,8 @@ export function claimCredit(
 	const email = normalizeEmail(rawEmail);
 
 	if (!email) {
-		return { state: recordFailure(state, (rawEmail ?? '').trim(), 'invalid', at), result: { status: 'invalid' } };
+		const stored = (rawEmail ?? '').trim().slice(0, 254);
+		return { state: recordFailure(state, stored, 'invalid', at), result: { status: 'invalid' } };
 	}
 
 	if (state.guests.length === 0) {

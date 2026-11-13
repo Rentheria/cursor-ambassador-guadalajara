@@ -80,7 +80,16 @@ test('claim page: registered, not registered, and admin', async ({ page, request
 	await expect(page.getByTestId('admin-failed')).toContainText('not.on.the.list@example.com');
 	await saveShot(page, 'credits_admin.png');
 
-	const exportRes = await page.request.get('/api/credits/admin/export?kind=claimed');
+	const origin = new URL(page.url()).origin;
+	const exportGet = await page.request.get('/api/credits/admin/export?kind=claimed', {
+		headers: { Origin: origin },
+	});
+	expect(exportGet.status()).toBe(405);
+
+	const exportRes = await page.request.post('/api/credits/admin/export', {
+		headers: { Origin: origin, 'Content-Type': 'application/json' },
+		data: { kind: 'claimed' },
+	});
 	expect(exportRes.ok()).toBeTruthy();
 	const csv = await exportRes.text();
 	expect(csv).toContain('ana.builder@example.com');

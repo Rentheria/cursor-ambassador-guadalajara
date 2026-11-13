@@ -7,14 +7,27 @@ import { loadCreditsState } from '@/lib/credits/store';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+async function exportKind(request: Request): Promise<string> {
+	const fromQuery = new URL(request.url).searchParams.get('kind');
+	const contentType = request.headers.get('content-type') ?? '';
+	if (contentType.includes('application/json')) {
+		try {
+			const body = (await request.json()) as { kind?: unknown };
+			if (typeof body.kind === 'string' && body.kind) return body.kind;
+		} catch {
+			// fall through to query
+		}
+	}
+	return fromQuery ?? 'claimed';
+}
+
+export async function POST(request: Request) {
 	if (!passwordConfigured()) {
 		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
 	}
 	if (!isAdminRequest(request)) return unauthorized();
 
-	const { searchParams } = new URL(request.url);
-	const kind = searchParams.get('kind') ?? 'claimed';
+	const kind = await exportKind(request);
 	const state = await loadCreditsState();
 
 	let filename = 'credits-claimed.csv';
@@ -44,4 +57,8 @@ export async function GET(request: Request) {
 			'Cache-Control': 'no-store',
 		},
 	});
+}
+
+export async function GET() {
+	return NextResponse.json({ error: 'method_not_allowed' }, { status: 405, headers: { Allow: 'POST' } });
 }
