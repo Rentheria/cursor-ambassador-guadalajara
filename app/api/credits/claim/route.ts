@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { claimCredit } from '@/lib/credits/assign';
-import { clientKeyFromRequest, consumeRateLimit } from '@/lib/credits/rate-limit';
+import { clientKeyFromRequest } from '@/lib/credits/rate-limit';
+import { limitClient } from '@/lib/credits/limit';
 import { updateCreditsState } from '@/lib/credits/store';
 import type { ClaimResult } from '@/lib/credits/types';
 
@@ -8,7 +9,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-	const limited = consumeRateLimit(`claim:${clientKeyFromRequest(request)}`);
+	const limited = await limitClient(`claim:${clientKeyFromRequest(request)}`);
 	if (!limited.ok) {
 		return NextResponse.json(
 			{ status: 'rate_limited' },

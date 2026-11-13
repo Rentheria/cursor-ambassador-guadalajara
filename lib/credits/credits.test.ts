@@ -3,7 +3,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { claimCredit, createCreditsState, remainingCredits, unclaimedGuests } from './assign';
-import { isEligibleApprovalStatus, parseCreditPool, parseCsvRows, parseLumaGuestsCsv } from './csv';
+import {
+	escapeCsvCell,
+	isEligibleApprovalStatus,
+	parseCreditPool,
+	parseCsvRows,
+	parseLumaGuestsCsv,
+	toCsv,
+} from './csv';
 import { emailsMatch, normalizeEmail } from './email';
 import { consumeRateLimit, resetRateLimitForTests } from './rate-limit';
 
@@ -82,6 +89,14 @@ describe('Luma CSV parsing', () => {
 			'https://cursor.com/referral?code=FAKE-GDL-002',
 			'CURSOR-GDL-TEST-003',
 		]);
+	});
+
+	it('neutralizes formula-like cells in CSV exports', () => {
+		assert.equal(escapeCsvCell('=CMD'), '"\'=CMD"');
+		assert.equal(escapeCsvCell('+cmd'), '"\'+cmd"');
+		assert.equal(escapeCsvCell('@SUM(1)'), '"\'@SUM(1)"');
+		assert.equal(escapeCsvCell('-1'), '"\'-1"');
+		assert.equal(toCsv([['=CMD', 'safe']]), '"\'=CMD",safe');
 	});
 });
 

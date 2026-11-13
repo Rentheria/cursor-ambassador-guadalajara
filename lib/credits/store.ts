@@ -3,6 +3,7 @@ import 'server-only';
 import { readFile, writeFile } from 'node:fs/promises';
 import { bootstrapStateFromEnv, creditsStoreKind, ensureStoreDir, getCreditsRuntimeConfig } from './config';
 import { createCreditsState } from './assign';
+import { kvFetch, withKvLock } from './kv';
 import type { CreditsState } from './types';
 
 const KV_KEY = 'credits:store';
@@ -35,26 +36,9 @@ function isUninitialized(state: CreditsState): boolean {
 	return state.guests.length === 0 && state.pool.length === 0 && !state.sharedLink && state.assignments.length === 0;
 }
 
-async function kvFetch(body: unknown): Promise<unknown> {
-	const { kvUrl, kvToken } = getCreditsRuntimeConfig();
-	const response = await fetch(`${kvUrl.replace(/\/$/, '')}`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${kvToken}`,
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify(body),
-		cache: 'no-store',
-	});
-	if (!response.ok) {
-		throw new Error(`credits kv ${response.status}`);
-	}
-	return response.json();
-}
-
 async function readKv(): Promise<CreditsState | null> {
-	const payload = (await kvFetch(['GET', KV_KEY])) as { result?: string | null };
-	if (!payload?.result) return null;
+	const payload = await kvFetch(['GET', KV_KEY]);
+	if (typeof payload.result !== 'string' || !payload.result) return null;
 	try {
 		return normalizeState(JSON.parse(payload.result));
 	} catch {
@@ -95,21 +79,38 @@ async function writeRaw(state: CreditsState): Promise<void> {
 	await writeFileStore(state);
 }
 
+async function mutateState(
+	mutator: (state: CreditsState) => CreditsState | Promise<CreditsState>,
+): Promise<CreditsState> {
+	const existing = await readRaw();
+	const current = existing && !isUninitialized(existing) ? existing : await bootstrapStateFromEnv();
+	const next = await mutator(current);
+	await writeRaw(next);
+	return next;
+}
+
+async function loadState(): Promise<CreditsState> {
+	const existing = await readRaw();
+	if (existing && !isUninitialized(existing)) return existing;
+	const bootstrapped = await bootstrapStateFromEnv();
+	if (!isUninitialized(bootstrapped)) {
+		await writeRaw(bootstrapped);
+		return bootstrapped;
+	}
+	return existing ?? createCreditsState();
+}
+
+function runExclusive<T>(task: () => Promise<T>): Promise<T> {
+	if (creditsStoreKind() === 'kv') return withKvLock(task);
+	return enqueue(task);
+}
+
 export async function loadCreditsState(): Promise<CreditsState> {
-	return enqueue(async () => {
-		const existing = await readRaw();
-		if (existing && !isUninitialized(existing)) return existing;
-		const bootstrapped = await bootstrapStateFromEnv();
-		if (!isUninitialized(bootstrapped)) {
-			await writeRaw(bootstrapped);
-			return bootstrapped;
-		}
-		return existing ?? createCreditsState();
-	});
+	return runExclusive(loadState);
 }
 
 export async function saveCreditsState(state: CreditsState): Promise<void> {
-	await enqueue(async () => {
+	await runExclusive(async () => {
 		await writeRaw(state);
 	});
 }
@@ -117,11 +118,5 @@ export async function saveCreditsState(state: CreditsState): Promise<void> {
 export async function updateCreditsState(
 	mutator: (state: CreditsState) => CreditsState | Promise<CreditsState>,
 ): Promise<CreditsState> {
-	return enqueue(async () => {
-		const existing = await readRaw();
-		const current = existing && !isUninitialized(existing) ? existing : await bootstrapStateFromEnv();
-		const next = await mutator(current);
-		await writeRaw(next);
-		return next;
-	});
+	return runExclusive(() => mutateState(mutator));
 }

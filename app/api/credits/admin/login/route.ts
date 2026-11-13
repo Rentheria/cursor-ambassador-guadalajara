@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { attachAdminCookie, createAdminToken, passwordConfigured, verifyAdminPassword } from '@/lib/credits/auth';
-import { consumeRateLimit, clientKeyFromRequest } from '@/lib/credits/rate-limit';
+import { clientKeyFromRequest } from '@/lib/credits/rate-limit';
+import { limitClient } from '@/lib/credits/limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
 	}
 
-	const limited = consumeRateLimit(`admin-login:${clientKeyFromRequest(request)}`);
+	const limited = await limitClient(`admin-login:${clientKeyFromRequest(request)}`);
 	if (!limited.ok) {
 		return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
 	}

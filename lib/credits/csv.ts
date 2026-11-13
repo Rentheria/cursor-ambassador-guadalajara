@@ -165,16 +165,18 @@ export function parseCreditPool(text: string): string[] {
 	return pool;
 }
 
+/** Prefix formula-like values so spreadsheet apps will not evaluate them. */
+export function escapeCsvCell(cell: string | undefined): string {
+	let value = cell ?? '';
+	if (/^[=+\-@\t\r]/.test(value)) {
+		value = `'${value}`;
+	}
+	if (/[",\n\r]/.test(value) || value.startsWith("'")) {
+		return `"${value.replace(/"/g, '""')}"`;
+	}
+	return value;
+}
+
 export function toCsv(rows: string[][]): string {
-	return rows
-		.map((row) =>
-			row
-				.map((cell) => {
-					const value = cell ?? '';
-					if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-					return value;
-				})
-				.join(','),
-		)
-		.join('\n');
+	return rows.map((row) => row.map((cell) => escapeCsvCell(cell)).join(',')).join('\n');
 }

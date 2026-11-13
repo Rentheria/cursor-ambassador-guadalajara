@@ -247,7 +247,7 @@ Pick one, in this order of convenience:
 Claims are stored server-side:
 
 - Node (`pnpm start`, a VPS, Hostinger Node): JSON file at `CREDITS_STORE_PATH` (default `.data/credits-store.json`, gitignored).
-- Vercel serverless: set `KV_REST_API_URL` + `KV_REST_API_TOKEN` (Vercel KV) or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. Without KV, the JSON file is ephemeral between instances.
+- Vercel serverless: set `KV_REST_API_URL` + `KV_REST_API_TOKEN` (Vercel KV) or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. Claims then use a Redis lock (one code per email across instances) and a shared rate-limit counter. Without KV, the JSON file is ephemeral between instances.
 
 ### Env vars
 
@@ -262,7 +262,7 @@ Claims are stored server-side:
 | `CREDITS_STORE_PATH`                         | no                           | Claim log JSON (Node hosts)                  |
 | `KV_REST_API_URL` + `KV_REST_API_TOKEN`      | Vercel                       | Persist claims on serverless                 |
 
-The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. Responses never include other emails or unused codes — only the one credit for a verified address.
+The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. On Vercel that counter lives in KV; on a single Node process it is in memory. Responses never include other emails or unused codes — only the one credit for a verified address. Admin CSV exports prefix formula-like cells (`=`, `+`, `-`, `@`) so spreadsheet apps will not execute them.
 
 ### Deploy (do not ship secrets in git)
 

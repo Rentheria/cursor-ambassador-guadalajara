@@ -1,5 +1,12 @@
 export { claimCredit, createCreditsState, remainingCredits, unclaimedGuests } from './assign';
-export { parseCreditPool, parseLumaGuestsCsv, parseCsvRows, isEligibleApprovalStatus, toCsv } from './csv';
+export {
+	parseCreditPool,
+	parseLumaGuestsCsv,
+	parseCsvRows,
+	isEligibleApprovalStatus,
+	escapeCsvCell,
+	toCsv,
+} from './csv';
 export { emailsMatch, normalizeEmail } from './email';
 export type {
 	Assignment,
