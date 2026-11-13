@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CreditsQrPoster from '@/components/CreditsQrPoster';
 import { ADMIN_COOKIE, CREDITS_ADMIN_PATH, publicClaimUrl } from '@/lib/credits/config';
-import { passwordConfigured, verifyAdminToken } from '@/lib/credits/auth';
+import { passwordConfigured, qrPosterAllowed, verifyAdminToken } from '@/lib/credits/auth';
 import { claimQrSvg } from '@/lib/credits/qr';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CreditosQrPage() {
+	if (!qrPosterAllowed()) {
+		notFound();
+	}
+
 	if (passwordConfigured()) {
 		const token = (await cookies()).get(ADMIN_COOKIE)?.value;
 		if (!verifyAdminToken(token)) {

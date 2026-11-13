@@ -14,7 +14,7 @@ import {
 } from './csv';
 import { emailsMatch, normalizeEmail } from './email';
 import { CLAIM_MESSAGE_KEYS, claimUiPhase, isClaimMessageStatus } from './claim-ui';
-import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
+import { cookieSecureFromRequest, isSameOriginRequest, qrPosterAllowed } from './origin';
 import { clientKeyFromRequest, consumeRateLimit, resetRateLimitForTests } from './rate-limit';
 import { evaluateClaimWindow, formatClaimMoment, getClaimWindowSnapshot, parseClaimInstant } from './window';
 
@@ -361,6 +361,13 @@ describe('admin origin', () => {
 			headers: { 'x-forwarded-proto': 'http' },
 		});
 		assert.equal(cookieSecureFromRequest(http), false);
+	});
+
+	it('refuses to print a claim-token QR when organizer login is not configured', () => {
+		assert.equal(qrPosterAllowed('', 'on-site-secret'), false);
+		assert.equal(qrPosterAllowed('password', 'on-site-secret'), true);
+		assert.equal(qrPosterAllowed('password', ''), true);
+		assert.equal(qrPosterAllowed('', ''), true);
 	});
 });
 

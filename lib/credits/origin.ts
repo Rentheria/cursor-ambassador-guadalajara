@@ -29,6 +29,12 @@ export function isSameOriginRequest(request: Request): boolean {
 	return request.headers.get('sec-fetch-site')?.toLowerCase() === 'same-origin';
 }
 
+/** The QR poster can include `?k=`. That is only safe if organizer login can gate the page. */
+export function qrPosterAllowed(adminPassword: string, claimToken: string): boolean {
+	if (claimToken.trim() !== '' && adminPassword.trim() === '') return false;
+	return true;
+}
+
 /** Prefer the proxy-declared scheme so HTTP e2e stays non-Secure and HTTPS deploys stay Secure. */
 export function cookieSecureFromRequest(request: Request): boolean {
 	const proto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim().toLowerCase();

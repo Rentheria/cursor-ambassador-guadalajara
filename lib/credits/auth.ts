@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ADMIN_COOKIE, ADMIN_SESSION_HOURS, getCreditsRuntimeConfig } from './config';
 import { limitClient } from './limit';
-import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
+import { cookieSecureFromRequest, isSameOriginRequest, qrPosterAllowed as qrPosterAllowedFor } from './origin';
 import { clientKeyFromRequest } from './rate-limit';
 
 function hmac(secret: string, payload: string): string {
@@ -20,6 +20,11 @@ function safeEqual(a: string, b: string): boolean {
 
 export function passwordConfigured(): boolean {
 	return Boolean(getCreditsRuntimeConfig().adminPassword);
+}
+
+export function qrPosterAllowed(): boolean {
+	const { adminPassword, claimToken } = getCreditsRuntimeConfig();
+	return qrPosterAllowedFor(adminPassword, claimToken);
 }
 
 export function verifyAdminPassword(candidate: string): boolean {

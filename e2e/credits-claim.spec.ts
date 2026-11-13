@@ -127,6 +127,9 @@ test('claim page: registered, not registered, and admin', async ({ page, request
 	});
 	expect((await pending.json()).status).toBe('not_registered');
 
+	await page.goto('/creditos/qr');
+	await expect(page).toHaveURL(/\/creditos\/admin/);
+
 	await page.goto('/creditos/admin');
 	await expect(page.getByTestId('admin-login')).toBeVisible();
 	await page.getByLabel(/Contraseña de organización/i).fill('wrong-password');

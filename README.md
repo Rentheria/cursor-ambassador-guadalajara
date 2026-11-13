@@ -270,7 +270,7 @@ Claims are stored server-side:
 
 The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. On Vercel the limiter uses `x-vercel-forwarded-for`. On a bare Node host those platform headers are ignored (they are client-controlled) unless you set `CREDITS_TRUST_PROXY=cloudflare` or `nginx`. On Vercel the counter lives in KV; on a single Node process it is in memory. Responses never include other emails or unused codes — only the one credit for a verified address. Admin CSV exports prefix formula-like cells (`=`, `+`, `-`, `@`) so spreadsheet apps will not execute them. Export is POST-only and cookie sessions must come from the same origin.
 
-Set `CREDITS_CLAIM_TOKEN` in production. After logging into `/creditos/admin`, open `/creditos/qr` (login required) and print it. The QR embeds `?k=` so only people at the venue can submit. Without that token, anyone who finds `/creditos` can probe emails against the Luma list (the product still matches on email — Luma has no other attendee id we can use on-site).
+Set `CREDITS_CLAIM_TOKEN` in production. After logging into `/creditos/admin`, open `/creditos/qr` (login required) and print it. The QR embeds `?k=` so only people at the venue can submit. If a claim token is set without `CREDITS_ADMIN_PASSWORD`, `/creditos/qr` returns 404 so `?k=` cannot appear on a public page. Without that token, anyone who finds `/creditos` can probe emails against the Luma list (the product still matches on email — Luma has no other attendee id we can use on-site).
 
 ### Deploy (do not ship secrets in git)
 
