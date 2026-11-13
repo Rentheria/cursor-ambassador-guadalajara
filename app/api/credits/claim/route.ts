@@ -5,6 +5,7 @@ import { clientKeyFromRequest } from '@/lib/credits/rate-limit';
 import { limitClient } from '@/lib/credits/limit';
 import { updateCreditsState } from '@/lib/credits/store';
 import type { ClaimResult } from '@/lib/credits/types';
+import { getClaimWindowSnapshot } from '@/lib/credits/window';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,11 @@ export async function POST(request: Request) {
 
 	if (!token) {
 		token = new URL(request.url).searchParams.get('k') ?? undefined;
+	}
+
+	const windowStatus = getClaimWindowSnapshot().status;
+	if (windowStatus !== 'open') {
+		return NextResponse.json({ status: windowStatus }, { status: 403 });
 	}
 
 	if (!verifyClaimToken(token)) {

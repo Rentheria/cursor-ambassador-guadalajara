@@ -20,6 +20,8 @@ export type CreditsRuntimeConfig = {
 	kvUrl: string;
 	kvToken: string;
 	siteUrl: string;
+	openAt: string;
+	closeAt: string;
 };
 
 function trimEnv(name: string): string {
@@ -41,6 +43,8 @@ export function getCreditsRuntimeConfig(): CreditsRuntimeConfig {
 		kvUrl,
 		kvToken,
 		siteUrl,
+		openAt: trimEnv('CREDITS_OPEN_AT'),
+		closeAt: trimEnv('CREDITS_CLOSE_AT'),
 	};
 }
 

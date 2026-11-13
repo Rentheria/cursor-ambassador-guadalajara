@@ -251,17 +251,19 @@ Claims are stored server-side:
 
 ### Env vars
 
-| Variable                                     | Required                     | Purpose                                      |
-| -------------------------------------------- | ---------------------------- | -------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`                       | yes in prod                  | Public origin for the QR (no trailing slash) |
-| `CREDITS_ADMIN_PASSWORD`                     | yes to claim live            | Organizer password for `/creditos/admin`     |
-| `CREDITS_CLAIM_TOKEN`                        | strongly recommended         | On-site secret in the printed QR (`?k=`)     |
-| `CREDITS_MODE`                               | no (`pool`)                  | `pool` or `shared`                           |
-| `CREDITS_SHARED_LINK`                        | if shared                    | Single link shown to every eligible email    |
-| `CREDITS_GUESTS_PATH` / `CREDITS_GUESTS_CSV` | one of these or admin upload | Luma guests export                           |
-| `CREDITS_POOL_PATH` / `CREDITS_POOL`         | pool mode, or admin upload   | Unique codes/links, one per line             |
-| `CREDITS_STORE_PATH`                         | no                           | Claim log JSON (Node hosts)                  |
-| `KV_REST_API_URL` + `KV_REST_API_TOKEN`      | Vercel                       | Persist claims on serverless                 |
+| Variable                                     | Required                     | Purpose                                                                                                                                  |
+| -------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`                       | yes in prod                  | Public origin for the QR (no trailing slash)                                                                                             |
+| `CREDITS_ADMIN_PASSWORD`                     | yes to claim live            | Organizer password for `/creditos/admin`                                                                                                 |
+| `CREDITS_CLAIM_TOKEN`                        | strongly recommended         | On-site secret in the printed QR (`?k=`)                                                                                                 |
+| `CREDITS_MODE`                               | no (`pool`)                  | `pool` or `shared`                                                                                                                       |
+| `CREDITS_SHARED_LINK`                        | if shared                    | Single link shown to every eligible email                                                                                                |
+| `CREDITS_GUESTS_PATH` / `CREDITS_GUESTS_CSV` | one of these or admin upload | Luma guests export                                                                                                                       |
+| `CREDITS_POOL_PATH` / `CREDITS_POOL`         | pool mode, or admin upload   | Unique codes/links, one per line                                                                                                         |
+| `CREDITS_STORE_PATH`                         | no                           | Claim log JSON (Node hosts)                                                                                                              |
+| `CREDITS_OPEN_AT`                            | no                           | ISO instant; before this, API returns `not_open` (no code, not a failed attempt). Unset = open now. Example: `2026-11-14T10:00:00-06:00` |
+| `CREDITS_CLOSE_AT`                           | no                           | ISO instant; at/after this, API returns `closed`. Ignored if not after `OPEN_AT`.                                                        |
+| `KV_REST_API_URL` + `KV_REST_API_TOKEN`      | Vercel                       | Persist claims on serverless                                                                                                             |
 
 The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. The limiter uses platform client-IP headers (`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`) and ignores a spoofable `X-Forwarded-For` when those are absent. On Vercel that counter lives in KV; on a single Node process it is in memory. Responses never include other emails or unused codes — only the one credit for a verified address. Admin CSV exports prefix formula-like cells (`=`, `+`, `-`, `@`) so spreadsheet apps will not execute them. Export is POST-only and cookie sessions must come from the same origin.
 
@@ -273,10 +275,11 @@ Set `CREDITS_CLAIM_TOKEN` in production. After logging into `/creditos/admin`, o
 2. Set `CREDITS_ADMIN_PASSWORD`.
 3. Set `CREDITS_CLAIM_TOKEN` to a long random string and print `/creditos/qr` (it includes `?k=`).
 4. Set `CREDITS_MODE` to `pool` or `shared`.
-5. On Vercel, add KV (or Upstash) if you need claims to survive. On a Node host, `.data/` on disk is enough.
-6. Deploy with the usual Next.js build (`pnpm build` / `pnpm start`, or Vercel defaults).
-7. After deploy, open `/creditos/admin`, upload the Luma CSV and the codes (or drop gitignored files on the server).
-8. Log into `/creditos/admin` and print `/creditos/qr` for the registration table.
+5. Set `CREDITS_OPEN_AT` (and optionally `CREDITS_CLOSE_AT`) if redemption should wait until a clock time. `/creditos` shows a closed state and the API returns `not_open` / `closed` without writing the claim log.
+6. On Vercel, add KV (or Upstash) if you need claims to survive. On a Node host, `.data/` on disk is enough.
+7. Deploy with the usual Next.js build (`pnpm build` / `pnpm start`, or Vercel defaults).
+8. After deploy, open `/creditos/admin`, upload the Luma CSV and the codes (or drop gitignored files on the server).
+9. Log into `/creditos/admin` and print `/creditos/qr` for the registration table.
 
 ### Export results
 

@@ -15,6 +15,7 @@ import { emailsMatch, normalizeEmail } from './email';
 import { CLAIM_MESSAGE_KEYS, claimUiPhase, isClaimMessageStatus } from './claim-ui';
 import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
 import { clientKeyFromRequest, consumeRateLimit, resetRateLimitForTests } from './rate-limit';
+import { evaluateClaimWindow, formatClaimMoment, getClaimWindowSnapshot, parseClaimInstant } from './window';
 
 const sampleCsv = readFileSync(path.join(process.cwd(), 'fixtures/credits/luma-guests.sample.csv'), 'utf8');
 const samplePool = readFileSync(path.join(process.cwd(), 'fixtures/credits/codes.sample.txt'), 'utf8');
@@ -285,5 +286,60 @@ describe('admin origin', () => {
 			headers: { 'x-forwarded-proto': 'http' },
 		});
 		assert.equal(cookieSecureFromRequest(http), false);
+	});
+});
+
+describe('claim window', () => {
+	const open = new Date('2026-11-14T10:00:00-06:00');
+	const close = new Date('2026-11-14T22:00:00-06:00');
+
+	it('treats missing or invalid instants as unset', () => {
+		assert.equal(parseClaimInstant(undefined), null);
+		assert.equal(parseClaimInstant(''), null);
+		assert.equal(parseClaimInstant('   '), null);
+		assert.equal(parseClaimInstant('not-a-date'), null);
+	});
+
+	it('is open when both bounds are unset', () => {
+		assert.equal(evaluateClaimWindow(new Date('2020-01-01T00:00:00Z'), null, null), 'open');
+	});
+
+	it('is not_open before CREDITS_OPEN_AT and open at/after it', () => {
+		assert.equal(evaluateClaimWindow(new Date('2026-11-14T09:59:59-06:00'), open, null), 'not_open');
+		assert.equal(evaluateClaimWindow(open, open, null), 'open');
+		assert.equal(evaluateClaimWindow(new Date('2026-11-14T10:00:01-06:00'), open, null), 'open');
+	});
+
+	it('is closed at/after CREDITS_CLOSE_AT', () => {
+		assert.equal(evaluateClaimWindow(new Date('2026-11-14T21:59:59-06:00'), open, close), 'open');
+		assert.equal(evaluateClaimWindow(close, open, close), 'closed');
+		assert.equal(evaluateClaimWindow(new Date('2026-11-15T00:00:00-06:00'), null, close), 'closed');
+	});
+
+	it('ignores a close instant that is not after open', () => {
+		assert.equal(evaluateClaimWindow(new Date('2026-11-14T12:00:00-06:00'), open, open), 'open');
+		assert.equal(evaluateClaimWindow(new Date('2026-11-14T09:00:00-06:00'), open, open), 'not_open');
+	});
+
+	it('reads env through getClaimWindowSnapshot without assigning a code', () => {
+		const before = getClaimWindowSnapshot(new Date('2026-11-14T09:00:00-06:00'), '2026-11-14T10:00:00-06:00', '');
+		assert.equal(before.status, 'not_open');
+		assert.ok(before.openAt);
+
+		const after = getClaimWindowSnapshot(
+			new Date('2026-11-14T23:00:00-06:00'),
+			'2026-11-14T10:00:00-06:00',
+			'2026-11-14T22:00:00-06:00',
+		);
+		assert.equal(after.status, 'closed');
+
+		const unset = getClaimWindowSnapshot(new Date('2026-11-14T09:00:00-06:00'), '', '');
+		assert.equal(unset.status, 'open');
+		assert.equal(unset.openAt, null);
+		assert.equal(unset.closeAt, null);
+	});
+
+	it('formats the Guadalajara kickoff moment in Spanish', () => {
+		assert.equal(formatClaimMoment(open, 'es-MX'), 'sábado 14 de nov a las 10:00');
 	});
 });
