@@ -75,6 +75,27 @@ describe('Luma CSV parsing', () => {
 		assert.equal(guests[0]?.eligible, true);
 	});
 
+	it('treats Luma approved / declined / pending_approval from a BOM-prefixed export', () => {
+		const csv =
+			'\uFEFFname,email,approval_status\n' +
+			'Ana Approved,ana.approved@example.com,approved\n' +
+			'Dana Declined,dana.declined@example.com,declined\n' +
+			'Pat Pending,pat.pending@example.com,pending_approval\n';
+		const guests = parseLumaGuestsCsv(csv);
+		const byEmail = Object.fromEntries(guests.map((guest) => [guest.email, guest]));
+		assert.equal(guests.length, 3);
+		assert.equal(byEmail['ana.approved@example.com']?.eligible, true);
+		assert.equal(byEmail['ana.approved@example.com']?.approvalStatus, 'approved');
+		assert.equal(byEmail['dana.declined@example.com']?.eligible, false);
+		assert.equal(byEmail['dana.declined@example.com']?.approvalStatus, 'declined');
+		assert.equal(byEmail['pat.pending@example.com']?.eligible, false);
+		assert.equal(byEmail['pat.pending@example.com']?.approvalStatus, 'pending_approval');
+		assert.equal(isEligibleApprovalStatus('pending_approval'), false);
+		assert.equal(isEligibleApprovalStatus('pending-approval'), false);
+		assert.equal(isEligibleApprovalStatus('approved'), true);
+		assert.equal(isEligibleApprovalStatus('declined'), false);
+	});
+
 	it('parses quoted CSV rows', () => {
 		const rows = parseCsvRows('name,email\n"Builder, Ana",ana.builder@example.com\n');
 		assert.deepEqual(rows[1], ['Builder, Ana', 'ana.builder@example.com']);

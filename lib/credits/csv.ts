@@ -5,6 +5,8 @@ const ELIGIBLE_STATUSES = new Set(['approved', 'going', 'registered', 'attended'
 
 const INELIGIBLE_STATUSES = new Set([
 	'pending',
+	'pending_approval',
+	'pending-approval',
 	'declined',
 	'rejected',
 	'waitlist',
