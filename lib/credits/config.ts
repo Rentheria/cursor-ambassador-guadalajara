@@ -4,7 +4,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseCreditPool, parseLumaGuestsCsv } from './csv';
 import { createCreditsState } from './assign';
-import type { CreditsMode, CreditsState } from './types';
+import { parseCreditsMode, type CreditsMode, type CreditsState } from './types';
 
 export const CREDITS_CLAIM_PATH = '/creditos';
 export const CREDITS_ADMIN_PATH = '/creditos/admin';
@@ -22,6 +22,9 @@ export type CreditsRuntimeConfig = {
 	siteUrl: string;
 	openAt: string;
 	closeAt: string;
+	linkNewUsers: string;
+	linkExistingUsers: string;
+	sharedLink: string;
 };
 
 function trimEnv(name: string): string {
@@ -29,14 +32,13 @@ function trimEnv(name: string): string {
 }
 
 export function getCreditsRuntimeConfig(): CreditsRuntimeConfig {
-	const mode = trimEnv('CREDITS_MODE').toLowerCase() === 'shared' ? 'shared' : 'pool';
 	const kvUrl = trimEnv('KV_REST_API_URL') || trimEnv('UPSTASH_REDIS_REST_URL');
 	const kvToken = trimEnv('KV_REST_API_TOKEN') || trimEnv('UPSTASH_REDIS_REST_TOKEN');
 	const storePath = trimEnv('CREDITS_STORE_PATH') || path.join(process.cwd(), '.data', 'credits-store.json');
 	const siteUrl = (trimEnv('NEXT_PUBLIC_SITE_URL') || 'http://localhost:3000').replace(/\/$/, '');
 
 	return {
-		mode,
+		mode: parseCreditsMode(trimEnv('CREDITS_MODE')),
 		adminPassword: trimEnv('CREDITS_ADMIN_PASSWORD'),
 		claimToken: trimEnv('CREDITS_CLAIM_TOKEN'),
 		storePath,
@@ -45,6 +47,9 @@ export function getCreditsRuntimeConfig(): CreditsRuntimeConfig {
 		siteUrl,
 		openAt: trimEnv('CREDITS_OPEN_AT'),
 		closeAt: trimEnv('CREDITS_CLOSE_AT'),
+		linkNewUsers: trimEnv('CREDITS_LINK_NEW_USERS'),
+		linkExistingUsers: trimEnv('CREDITS_LINK_EXISTING_USERS'),
+		sharedLink: trimEnv('CREDITS_SHARED_LINK'),
 	};
 }
 
@@ -67,13 +72,27 @@ export async function bootstrapStateFromEnv(): Promise<CreditsState> {
 	const config = getCreditsRuntimeConfig();
 	const guestsCsv = trimEnv('CREDITS_GUESTS_CSV') || (await readOptionalFile(trimEnv('CREDITS_GUESTS_PATH')));
 	const poolText = trimEnv('CREDITS_POOL') || (await readOptionalFile(trimEnv('CREDITS_POOL_PATH')));
-	const sharedLink = trimEnv('CREDITS_SHARED_LINK');
 
 	return createCreditsState({
 		mode: config.mode,
-		sharedLink,
+		sharedLink: config.sharedLink,
+		linkNewUsers: config.linkNewUsers,
+		linkExistingUsers: config.linkExistingUsers,
 		guests: guestsCsv ? parseLumaGuestsCsv(guestsCsv) : [],
 		pool: poolText ? parseCreditPool(poolText) : [],
+	});
+}
+
+/** Keep dual/shared URLs on the server store in sync with env (never ship them to the client bundle). */
+export function overlayRuntimeSecrets(state: CreditsState): CreditsState {
+	const config = getCreditsRuntimeConfig();
+	const modeFromEnv = Boolean(trimEnv('CREDITS_MODE'));
+	return createCreditsState({
+		...state,
+		mode: modeFromEnv ? config.mode : state.mode,
+		sharedLink: config.sharedLink || state.sharedLink,
+		linkNewUsers: config.linkNewUsers || state.linkNewUsers,
+		linkExistingUsers: config.linkExistingUsers || state.linkExistingUsers,
 	});
 }
 

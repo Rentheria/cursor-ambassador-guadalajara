@@ -1,9 +1,11 @@
 import { normalizeEmail } from './email';
 import {
 	FAILED_ATTEMPT_CAP,
+	parseCreditPath,
+	parseCreditsMode,
 	type Assignment,
 	type ClaimResult,
-	type CreditsMode,
+	type CreditPath,
 	type CreditsState,
 	type FailedAttemptReason,
 	type Guest,
@@ -12,12 +14,24 @@ import {
 export function createCreditsState(partial?: Partial<CreditsState>): CreditsState {
 	return {
 		version: 1,
-		mode: partial?.mode ?? 'pool',
+		mode: parseCreditsMode(partial?.mode),
 		sharedLink: partial?.sharedLink ?? '',
+		linkNewUsers: partial?.linkNewUsers ?? '',
+		linkExistingUsers: partial?.linkExistingUsers ?? '',
 		guests: partial?.guests ?? [],
 		pool: partial?.pool ?? [],
-		assignments: partial?.assignments ?? [],
+		assignments: (partial?.assignments ?? []).map(normalizeAssignment),
 		failedAttempts: partial?.failedAttempts ?? [],
+	};
+}
+
+function normalizeAssignment(entry: Assignment): Assignment {
+	return {
+		email: entry.email,
+		name: entry.name,
+		credit: entry.credit ?? '',
+		claimedAt: entry.claimedAt,
+		path: parseCreditPath(entry.path),
 	};
 }
 
@@ -31,7 +45,7 @@ function findGuest(guests: Guest[], email: string): Guest | undefined {
 }
 
 function findAssignment(assignments: Assignment[], email: string): Assignment | undefined {
-	return assignments.find((entry) => entry.email === email);
+	return assignments.map(normalizeAssignment).find((entry) => entry.email === email);
 }
 
 function nextSharedCredit(state: CreditsState): string | null {
@@ -45,17 +59,34 @@ function nextPoolCredit(state: CreditsState): { credit: string; pool: string[] }
 	return { credit, pool };
 }
 
+export function creditForPath(state: CreditsState, path: CreditPath): string | null {
+	const link = (path === 'new' ? state.linkNewUsers : state.linkExistingUsers).trim();
+	return link || null;
+}
+
+function dualLinksReady(state: CreditsState): boolean {
+	return Boolean(state.linkNewUsers.trim() || state.linkExistingUsers.trim());
+}
+
+function upsertAssignment(state: CreditsState, assignment: Assignment): CreditsState {
+	const rest = state.assignments.filter((entry) => entry.email !== assignment.email);
+	return { ...state, assignments: [assignment, ...rest] };
+}
+
 /**
  * Pure claim: registered + eligible emails receive a credit.
- * Re-claims are idempotent (same email → same credit).
+ * Re-claims are idempotent for pool/shared (same email → same credit).
+ * Dual mode asks which account path to use and may switch that path later.
  */
 export function claimCredit(
 	state: CreditsState,
 	rawEmail: string,
 	now = new Date(),
+	rawPath?: unknown,
 ): { state: CreditsState; result: ClaimResult } {
 	const at = now.toISOString();
 	const email = normalizeEmail(rawEmail);
+	const path = parseCreditPath(rawPath);
 
 	if (!email) {
 		const stored = (rawEmail ?? '').trim().slice(0, 254);
@@ -75,11 +106,56 @@ export function claimCredit(
 	}
 
 	const existing = findAssignment(state.assignments, email);
+	const mode = parseCreditsMode(state.mode);
+
+	if (mode === 'dual') {
+		if (!dualLinksReady(state)) {
+			return { state: recordFailure(state, email, 'exhausted', at), result: { status: 'exhausted' } };
+		}
+
+		if (!path) {
+			const assignment: Assignment = existing ?? {
+				email,
+				name: guest.name,
+				credit: '',
+				claimedAt: at,
+				path: null,
+			};
+			return {
+				state: existing ? state : upsertAssignment(state, assignment),
+				result: {
+					status: 'ok',
+					mode: 'dual',
+					needsPath: true,
+					path: assignment.path,
+					reused: Boolean(existing),
+				},
+			};
+		}
+
+		const credit = creditForPath(state, path);
+		if (!credit) {
+			return { state: recordFailure(state, email, 'exhausted', at), result: { status: 'exhausted' } };
+		}
+
+		const assignment: Assignment = {
+			email,
+			name: guest.name,
+			credit,
+			claimedAt: existing?.claimedAt ?? at,
+			path,
+		};
+
+		return {
+			state: upsertAssignment(state, assignment),
+			result: { status: 'ok', mode: 'dual', path, credit, reused: Boolean(existing) },
+		};
+	}
+
 	if (existing) {
 		return { state, result: { status: 'ok', credit: existing.credit, reused: true } };
 	}
 
-	const mode: CreditsMode = state.mode === 'shared' ? 'shared' : 'pool';
 	let credit: string | null = null;
 	let pool = state.pool;
 
@@ -102,6 +178,7 @@ export function claimCredit(
 		name: guest.name,
 		credit,
 		claimedAt: at,
+		path: null,
 	};
 
 	return {
@@ -120,6 +197,33 @@ export function unclaimedGuests(state: CreditsState): Guest[] {
 }
 
 export function remainingCredits(state: CreditsState): number {
-	if (state.mode === 'shared') return state.sharedLink.trim() ? Number.POSITIVE_INFINITY : 0;
+	const mode = parseCreditsMode(state.mode);
+	if (mode === 'shared') return state.sharedLink.trim() ? Number.POSITIVE_INFINITY : 0;
+	if (mode === 'dual') return dualLinksReady(state) ? Number.POSITIVE_INFINITY : 0;
 	return state.pool.length;
+}
+
+export function publicClaimPayload(result: ClaimResult): Record<string, unknown> {
+	if (result.status !== 'ok') {
+		return { status: result.status };
+	}
+	if (result.mode === 'dual' && result.needsPath) {
+		return {
+			status: 'ok',
+			mode: 'dual',
+			needsPath: true,
+			path: result.path,
+			reused: result.reused,
+		};
+	}
+	if (result.mode === 'dual') {
+		return {
+			status: 'ok',
+			mode: 'dual',
+			path: result.path,
+			credit: result.credit,
+			reused: result.reused,
+		};
+	}
+	return { status: 'ok', credit: result.credit, reused: result.reused };
 }

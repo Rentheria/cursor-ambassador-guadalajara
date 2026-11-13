@@ -1,4 +1,11 @@
-export { claimCredit, createCreditsState, remainingCredits, unclaimedGuests } from './assign';
+export {
+	claimCredit,
+	createCreditsState,
+	creditForPath,
+	publicClaimPayload,
+	remainingCredits,
+	unclaimedGuests,
+} from './assign';
 export {
 	parseCreditPool,
 	parseLumaGuestsCsv,
@@ -12,9 +19,11 @@ export type {
 	Assignment,
 	ClaimResult,
 	ClaimStatus,
+	CreditPath,
 	CreditsMode,
 	CreditsState,
 	FailedAttempt,
 	FailedAttemptReason,
 	Guest,
 } from './types';
+export { parseCreditPath, parseCreditsMode } from './types';

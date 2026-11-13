@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import { claimCredit, createCreditsState, remainingCredits, unclaimedGuests } from './assign';
+import { claimCredit, createCreditsState, publicClaimPayload, remainingCredits, unclaimedGuests } from './assign';
+import { parseCreditsMode } from './types';
 import {
 	escapeCsvCell,
 	isEligibleApprovalStatus,
@@ -197,6 +198,74 @@ describe('code assignment', () => {
 		assert.equal(next.result.status, 'invalid');
 		assert.equal(next.state.failedAttempts[0]?.email.length, 254);
 	});
+
+	it('dual mode asks for a path and only then returns that link', () => {
+		const start = createCreditsState({
+			mode: 'dual',
+			guests,
+			linkNewUsers: 'https://grok.com/refer/TEST-NEW-USER',
+			linkExistingUsers: 'https://cursor.com/redeem/event/TEST-EXISTING',
+		});
+		const pending = claimCredit(start, 'ana.builder@example.com', now);
+		assert.equal(pending.result.status, 'ok');
+		assert.equal(pending.result.status === 'ok' && pending.result.needsPath, true);
+		assert.equal(pending.result.status === 'ok' && pending.result.credit, undefined);
+		assert.equal(pending.state.assignments[0]?.path, null);
+		assert.equal(pending.state.assignments[0]?.credit, '');
+
+		const chosen = claimCredit(pending.state, 'ana.builder@example.com', now, 'new');
+		assert.equal(chosen.result.status, 'ok');
+		assert.equal(chosen.result.status === 'ok' && chosen.result.credit, 'https://grok.com/refer/TEST-NEW-USER');
+		assert.equal(chosen.result.status === 'ok' && chosen.result.path, 'new');
+		assert.equal(chosen.result.status === 'ok' && chosen.result.reused, true);
+
+		const switched = claimCredit(chosen.state, 'ANA.BUILDER@example.com', now, 'existing');
+		assert.equal(
+			switched.result.status === 'ok' && switched.result.credit,
+			'https://cursor.com/redeem/event/TEST-EXISTING',
+		);
+		assert.equal(switched.state.assignments[0]?.path, 'existing');
+		assert.equal(switched.state.assignments.length, 1);
+	});
+
+	it('dual mode does not give a link to ineligible emails', () => {
+		const start = createCreditsState({
+			mode: 'dual',
+			guests,
+			linkNewUsers: 'https://grok.com/refer/TEST-NEW-USER',
+			linkExistingUsers: 'https://cursor.com/redeem/event/TEST-EXISTING',
+		});
+		const unknown = claimCredit(start, 'stranger@example.com', now, 'new');
+		assert.equal(unknown.result.status, 'not_registered');
+		assert.equal(unknown.result.credit, undefined);
+		assert.equal(unknown.state.assignments.length, 0);
+	});
+
+	it('keeps dual links off the public payload until a path is chosen', () => {
+		const start = createCreditsState({
+			mode: 'dual',
+			guests,
+			linkNewUsers: 'https://grok.com/refer/TEST-NEW-USER',
+			linkExistingUsers: 'https://cursor.com/redeem/event/TEST-EXISTING',
+		});
+		const pending = publicClaimPayload(claimCredit(start, 'ana.builder@example.com', now).result);
+		assert.equal(pending.status, 'ok');
+		assert.equal('credit' in pending, false);
+		assert.equal(JSON.stringify(pending).includes('grok.com'), false);
+		assert.equal(JSON.stringify(pending).includes('redeem/event'), false);
+
+		const chosen = publicClaimPayload(claimCredit(start, 'ana.builder@example.com', now, 'new').result);
+		assert.equal(chosen.credit, 'https://grok.com/refer/TEST-NEW-USER');
+		assert.equal(JSON.stringify(chosen).includes('TEST-EXISTING'), false);
+	});
+});
+
+describe('credits mode', () => {
+	it('parses pool, shared, and dual', () => {
+		assert.equal(parseCreditsMode('dual'), 'dual');
+		assert.equal(parseCreditsMode('SHARED'), 'shared');
+		assert.equal(parseCreditsMode(''), 'pool');
+	});
 });
 
 describe('claim UI phase', () => {
@@ -213,6 +282,10 @@ describe('claim UI phase', () => {
 		assert.equal(claimUiPhase('rate_limited'), 'message');
 		assert.equal(claimUiPhase('unavailable'), 'message');
 		assert.equal(claimUiPhase('forbidden'), 'message');
+	});
+
+	it('shows the dual path picker before a link', () => {
+		assert.equal(claimUiPhase('ok', { needsPath: true }), 'choose');
 	});
 
 	it('has copy keys for every non-success outcome', () => {
@@ -251,12 +324,14 @@ describe('rate limit', () => {
 				'x-vercel-forwarded-for': '198.51.100.20',
 			},
 		});
-		assert.equal(clientKeyFromRequest(vercel), '198.51.100.20');
+		assert.equal(clientKeyFromRequest(vercel, { VERCEL: '1' }), '198.51.100.20');
+		assert.equal(clientKeyFromRequest(vercel), 'direct');
 
 		const realIp = new Request('http://localhost/api/credits/claim', {
 			headers: { 'x-real-ip': '192.0.2.44' },
 		});
-		assert.equal(clientKeyFromRequest(realIp), '192.0.2.44');
+		assert.equal(clientKeyFromRequest(realIp), 'direct');
+		assert.equal(clientKeyFromRequest(realIp, { CREDITS_TRUST_PROXY: 'nginx' }), '192.0.2.44');
 	});
 });
 

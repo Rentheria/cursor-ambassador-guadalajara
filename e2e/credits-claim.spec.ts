@@ -50,6 +50,28 @@ test('claim page: registered, not registered, and admin', async ({ page, request
 	await expect(page.getByRole('heading', { name: /Reclama tus créditos de Cursor/i })).toBeVisible();
 	await expect(page.getByText(/¿Organizas el evento/i)).toHaveCount(0);
 	await expect(page.getByRole('link', { name: /Panel de organización/i })).toHaveCount(0);
+	await expect(page.getByRole('navigation').getByRole('link', { name: /créditos|credits/i })).toHaveCount(0);
+	await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/i);
+
+	const home = await page.goto('/');
+	expect(home?.ok()).toBeTruthy();
+	await expect(page.getByRole('navigation').getByRole('link', { name: /créditos|credits/i })).toHaveCount(0);
+	await expect(page.getByRole('link', { name: /Reclamar créditos/i })).toHaveCount(0);
+	const homeHtml = await page.content();
+	expect(homeHtml).not.toMatch(/href="\/creditos"/i);
+
+	const sitemap = await request.get('/sitemap.xml');
+	const sitemapBody = await sitemap.text();
+	expect(sitemapBody).not.toContain('/creditos');
+	expect(sitemapBody).not.toContain('/claim');
+
+	const robots = await request.get('/robots.txt');
+	const robotsBody = await robots.text();
+	expect(robotsBody).toMatch(/Disallow:\s*\/creditos/i);
+	expect(robotsBody).toMatch(/Disallow:\s*\/claim/i);
+
+	await page.goto('/creditos');
+	await setTheme(page, 'light');
 	await saveShot(page, 'credits_claim_form.png');
 
 	const first = await request.post('/api/credits/claim', {

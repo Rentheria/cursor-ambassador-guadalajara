@@ -227,10 +227,11 @@ pnpm typecheck                   # TypeScript only
 
 Attendees open `/creditos` (QR at `/creditos/qr`, alias `/claim`) and type the email they used on Luma. The server checks a Luma guests export (`name`, `email`, `approval_status`) and only approved/registered guests receive a credit. Unknown emails see a message to find the organizers at the end of the event.
 
-Two modes, set with `CREDITS_MODE`:
+Three modes, set with `CREDITS_MODE`:
 
 - `pool` (default): unique codes or links, one per email. Re-claiming the same email (trimmed, case-insensitive) returns the same credit. If the pool is empty, they are asked to see the organizers.
 - `shared`: every eligible email sees `CREDITS_SHARED_LINK`.
+- `dual`: two shared links from env (`CREDITS_LINK_NEW_USERS` for accounts created after 12 Oct 2026, `CREDITS_LINK_EXISTING_USERS` for personal Cursor accounts from before that date). After an eligible email is verified, the page asks which case they are; only then is that one URL returned. Re-claiming shows the question again so they can switch. The URLs are server-only — they are not in the client bundle or in `/creditos` HTML until a successful path choice.
 
 **This repo is public.** Never commit the real Luma CSV, registrant emails, or live credit codes. Sample files under `fixtures/credits/` use `@example.com` only.
 
@@ -256,8 +257,10 @@ Claims are stored server-side:
 | `NEXT_PUBLIC_SITE_URL`                       | yes in prod                  | Public origin for the QR (no trailing slash)                                                                                             |
 | `CREDITS_ADMIN_PASSWORD`                     | yes to claim live            | Organizer password for `/creditos/admin`                                                                                                 |
 | `CREDITS_CLAIM_TOKEN`                        | strongly recommended         | On-site secret in the printed QR (`?k=`)                                                                                                 |
-| `CREDITS_MODE`                               | no (`pool`)                  | `pool` or `shared`                                                                                                                       |
+| `CREDITS_MODE`                               | no (`pool`)                  | `pool`, `shared`, or `dual`                                                                                                              |
 | `CREDITS_SHARED_LINK`                        | if shared                    | Single link shown to every eligible email                                                                                                |
+| `CREDITS_LINK_NEW_USERS`                     | if dual                      | Grok referral for accounts created after 12 Oct 2026                                                                                     |
+| `CREDITS_LINK_EXISTING_USERS`                | if dual                      | `cursor.com/redeem/event` link for personal accounts from before 12 Oct                                                                  |
 | `CREDITS_GUESTS_PATH` / `CREDITS_GUESTS_CSV` | one of these or admin upload | Luma guests export                                                                                                                       |
 | `CREDITS_POOL_PATH` / `CREDITS_POOL`         | pool mode, or admin upload   | Unique codes/links, one per line                                                                                                         |
 | `CREDITS_STORE_PATH`                         | no                           | Claim log JSON (Node hosts)                                                                                                              |
@@ -265,7 +268,7 @@ Claims are stored server-side:
 | `CREDITS_CLOSE_AT`                           | no                           | ISO instant; at/after this, API returns `closed`. Ignored if not after `OPEN_AT`.                                                        |
 | `KV_REST_API_URL` + `KV_REST_API_TOKEN`      | Vercel                       | Persist claims on serverless                                                                                                             |
 
-The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. The limiter uses platform client-IP headers (`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`) and ignores a spoofable `X-Forwarded-For` when those are absent. On Vercel that counter lives in KV; on a single Node process it is in memory. Responses never include other emails or unused codes — only the one credit for a verified address. Admin CSV exports prefix formula-like cells (`=`, `+`, `-`, `@`) so spreadsheet apps will not execute them. Export is POST-only and cookie sessions must come from the same origin.
+The claim API is rate-limited (8 attempts / 10 minutes / IP) so the public form cannot be used to enumerate the list quickly. On Vercel the limiter uses `x-vercel-forwarded-for`. On a bare Node host those platform headers are ignored (they are client-controlled) unless you set `CREDITS_TRUST_PROXY=cloudflare` or `nginx`. On Vercel the counter lives in KV; on a single Node process it is in memory. Responses never include other emails or unused codes — only the one credit for a verified address. Admin CSV exports prefix formula-like cells (`=`, `+`, `-`, `@`) so spreadsheet apps will not execute them. Export is POST-only and cookie sessions must come from the same origin.
 
 Set `CREDITS_CLAIM_TOKEN` in production. After logging into `/creditos/admin`, open `/creditos/qr` (login required) and print it. The QR embeds `?k=` so only people at the venue can submit. Without that token, anyone who finds `/creditos` can probe emails against the Luma list (the product still matches on email — Luma has no other attendee id we can use on-site).
 
@@ -274,7 +277,7 @@ Set `CREDITS_CLAIM_TOKEN` in production. After logging into `/creditos/admin`, o
 1. Set `NEXT_PUBLIC_SITE_URL` to the production domain.
 2. Set `CREDITS_ADMIN_PASSWORD`.
 3. Set `CREDITS_CLAIM_TOKEN` to a long random string and print `/creditos/qr` (it includes `?k=`).
-4. Set `CREDITS_MODE` to `pool` or `shared`.
+4. Set `CREDITS_MODE` to `pool`, `shared`, or `dual` (and the matching link env vars).
 5. Set `CREDITS_OPEN_AT` (and optionally `CREDITS_CLOSE_AT`) if redemption should wait until a clock time. `/creditos` shows a closed state and the API returns `not_open` / `closed` without writing the claim log.
 6. On Vercel, add KV (or Upstash) if you need claims to survive. On a Node host, `.data/` on disk is enough.
 7. Deploy with the usual Next.js build (`pnpm build` / `pnpm start`, or Vercel defaults).

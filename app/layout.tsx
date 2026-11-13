@@ -58,7 +58,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang={siteConfig.defaultLocale} suppressHydrationWarning>
 			<head>
-				<script nonce={nonce || undefined} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+				<script
+					nonce={nonce || undefined}
+					suppressHydrationWarning
+					dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+				/>
 			</head>
 			<body className="antialiased">
 				<Providers>{children}</Providers>

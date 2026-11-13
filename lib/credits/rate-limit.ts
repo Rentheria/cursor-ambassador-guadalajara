@@ -14,17 +14,37 @@ function firstHop(value: string | null): string | null {
 	return hop || null;
 }
 
+export type ClientKeyEnv = Record<string, string | undefined>;
+
+function trustProxy(env: ClientKeyEnv): string {
+	return (env.CREDITS_TRUST_PROXY ?? '').trim().toLowerCase();
+}
+
 /**
- * Prefer platform-set client IPs. Ignore client-supplied `X-Forwarded-For`
- * when no trusted proxy header is present (otherwise the rate limit is trivial to rotate).
+ * Client IP for rate-limit buckets. Platform headers are only used when that
+ * platform is actually in front — otherwise they are client-controlled on
+ * `pnpm start` / a bare Node host.
+ *
+ * - Vercel (`VERCEL` is set): `x-vercel-forwarded-for`
+ * - `CREDITS_TRUST_PROXY=cloudflare`: `cf-connecting-ip` / `true-client-ip`
+ * - `CREDITS_TRUST_PROXY=nginx`: `x-real-ip`
  */
-export function clientKeyFromRequest(request: Request): string {
-	const trusted =
-		firstHop(request.headers.get('x-vercel-forwarded-for')) ||
-		firstHop(request.headers.get('cf-connecting-ip')) ||
-		firstHop(request.headers.get('true-client-ip')) ||
-		firstHop(request.headers.get('x-real-ip'));
-	if (trusted) return trusted;
+export function clientKeyFromRequest(request: Request, env: ClientKeyEnv = process.env): string {
+	if (env.VERCEL) {
+		const vercel = firstHop(request.headers.get('x-vercel-forwarded-for'));
+		if (vercel) return vercel;
+	}
+
+	const proxy = trustProxy(env);
+	if (proxy === 'cloudflare' || proxy === 'cf') {
+		const cf = firstHop(request.headers.get('cf-connecting-ip')) || firstHop(request.headers.get('true-client-ip'));
+		if (cf) return cf;
+	}
+	if (proxy === 'nginx' || proxy === '1' || proxy === 'true') {
+		const realIp = firstHop(request.headers.get('x-real-ip'));
+		if (realIp) return realIp;
+	}
+
 	return 'direct';
 }
 

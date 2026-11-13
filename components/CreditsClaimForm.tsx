@@ -8,6 +8,7 @@ import { CLAIM_MESSAGE_KEYS, claimUiPhase, isClaimMessageStatus, type ClaimUiSta
 import { useI18n } from '@/lib/i18n';
 
 type ClaimStatus = ClaimUiStatus;
+type CreditPath = 'new' | 'existing';
 
 function claimTokenFromBrowser(): string {
 	if (typeof window === 'undefined') return '';
@@ -31,6 +32,9 @@ type ClaimResponse = {
 	status: ClaimStatus;
 	credit?: string;
 	reused?: boolean;
+	mode?: 'pool' | 'shared' | 'dual';
+	needsPath?: boolean;
+	path?: CreditPath | null;
 };
 
 function looksLikeUrl(value: string): boolean {
@@ -73,18 +77,37 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 		}
 	}, []);
 
+	async function postClaim(payload: { email: string; path?: CreditPath }) {
+		const token = claimTokenFromBrowser();
+		const response = await fetch('/api/credits/claim', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ...payload, ...(token ? { token } : {}) }),
+		});
+		return (await response.json()) as ClaimResponse;
+	}
+
 	async function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPending(true);
 		setCopied(false);
 		try {
-			const token = claimTokenFromBrowser();
-			const response = await fetch('/api/credits/claim', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, ...(token ? { token } : {}) }),
-			});
-			const body = (await response.json()) as ClaimResponse;
+			const body = await postClaim({ email });
+			setResult(body);
+			onOutcome?.(body.status);
+		} catch {
+			setResult({ status: 'unavailable' });
+			onOutcome?.('unavailable');
+		} finally {
+			setPending(false);
+		}
+	}
+
+	async function choosePath(path: CreditPath) {
+		setPending(true);
+		setCopied(false);
+		try {
+			const body = await postClaim({ email, path });
 			setResult(body);
 			onOutcome?.(body.status);
 		} catch {
@@ -102,6 +125,15 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 		onOutcome?.(null);
 	}
 
+	function switchPath() {
+		setCopied(false);
+		setResult((current) =>
+			current
+				? { ...current, needsPath: true, credit: undefined, status: 'ok', mode: current.mode ?? 'dual' }
+				: current,
+		);
+	}
+
 	async function copyCredit(value: string) {
 		try {
 			await navigator.clipboard.writeText(value);
@@ -111,11 +143,21 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 		}
 	}
 
-	const phase = claimUiPhase(result?.status);
+	const phase = claimUiPhase(result?.status, { needsPath: result?.needsPath });
 	const message =
 		result && isClaimMessageStatus(result.status)
 			? { heading: t(CLAIM_MESSAGE_KEYS[result.status].heading), body: t(CLAIM_MESSAGE_KEYS[result.status].body) }
 			: null;
+	const dualPath = result?.path === 'new' || result?.path === 'existing' ? result.path : null;
+	const dualSteps =
+		dualPath === 'new'
+			? ['credits.dualNewStep1', 'credits.dualNewStep2', 'credits.dualNewStep3']
+			: [
+					'credits.dualExistingStep1',
+					'credits.dualExistingStep2',
+					'credits.dualExistingStep3',
+					'credits.dualExistingStep4',
+				];
 
 	return (
 		<div className="max-w-xl">
@@ -168,9 +210,49 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 							)}
 						</Button>
 					</motion.form>
+				) : phase === 'choose' ? (
+					<motion.section
+						key="choose"
+						{...swap}
+						className={`${cardFeatured} p-5 sm:p-7`}
+						aria-live="polite"
+						data-testid="credits-choose"
+					>
+						<p className="cursor-eyebrow">{t('credits.successEyebrow')}</p>
+						<h2 ref={headingRef} tabIndex={-1} className="mt-2 text-2xl text-cursor-text outline-none">
+							{t('credits.dualQuestion')}
+						</h2>
+						<p className="mt-3 text-sm leading-relaxed text-cursor-text-secondary md:text-base">
+							{t('credits.dualQuestionHelp')}
+						</p>
+						<div className="mt-6 flex flex-col gap-3">
+							<Button
+								type="button"
+								variant="accent"
+								size="lg"
+								className="h-auto min-h-14 w-full whitespace-normal py-4 text-left"
+								disabled={pending}
+								onClick={() => void choosePath('existing')}
+								data-testid="credits-path-existing"
+							>
+								{t('credits.dualExistingChoice')}
+							</Button>
+							<Button
+								type="button"
+								variant="primary"
+								size="lg"
+								className="h-auto min-h-14 w-full whitespace-normal py-4 text-left"
+								disabled={pending}
+								onClick={() => void choosePath('new')}
+								data-testid="credits-path-new"
+							>
+								{t('credits.dualNewChoice')}
+							</Button>
+						</div>
+					</motion.section>
 				) : phase === 'success' && result?.credit ? (
 					<motion.section
-						key={`ok-${result.reused ? 'reused' : 'new'}`}
+						key={`ok-${result.reused ? 'reused' : 'new'}-${result.path ?? 'code'}`}
 						{...swap}
 						className={`${cardFeatured} p-5 sm:p-7`}
 						aria-live="polite"
@@ -192,13 +274,25 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 									{result.reused ? t('credits.successReusedEyebrow') : t('credits.successEyebrow')}
 								</p>
 								<h2 ref={headingRef} tabIndex={-1} className="mt-1 text-2xl text-cursor-text outline-none">
-									{t('credits.successHeading')}
+									{result.mode === 'dual'
+										? result.path === 'new'
+											? t('credits.dualNewHeading')
+											: t('credits.dualExistingHeading')
+										: t('credits.successHeading')}
 								</h2>
 							</div>
 						</div>
-						<p className="text-sm leading-relaxed text-cursor-text-secondary md:text-base">
-							{result.reused ? t('credits.successReused') : t('credits.successBody')}
-						</p>
+						{result.mode === 'dual' ? (
+							<ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-cursor-text-secondary md:text-base">
+								{dualSteps.map((key) => (
+									<li key={key}>{t(key)}</li>
+								))}
+							</ol>
+						) : (
+							<p className="text-sm leading-relaxed text-cursor-text-secondary md:text-base">
+								{result.reused ? t('credits.successReused') : t('credits.successBody')}
+							</p>
+						)}
 						<div className="mt-6 rounded-sm border border-cursor-border bg-cursor-bg px-4 py-4">
 							{looksLikeUrl(result.credit) ? (
 								<a
@@ -232,6 +326,18 @@ export default function CreditsClaimForm({ onOutcome }: CreditsClaimFormProps) {
 								<Button href={result.credit} external variant="primary" size="lg" className="w-full">
 									{t('credits.openLink')}
 									<ExternalLink className="size-4" strokeWidth={2} aria-hidden="true" />
+								</Button>
+							) : null}
+							{result.mode === 'dual' ? (
+								<Button
+									type="button"
+									variant="secondary"
+									size="lg"
+									className="w-full"
+									onClick={switchPath}
+									data-testid="credits-switch-path"
+								>
+									{t('credits.dualSwitch')}
 								</Button>
 							) : null}
 						</div>

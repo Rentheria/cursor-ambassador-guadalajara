@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
 		rules: {
 			userAgent: '*',
 			allow: '/',
-			disallow: ['/creditos/admin', '/api/credits/'],
+			disallow: ['/creditos', '/claim', '/api/credits/'],
 		},
 		sitemap: `${BASE_URL}/sitemap.xml`,
 	};

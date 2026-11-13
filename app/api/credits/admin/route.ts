@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildAdminSummary } from '@/lib/credits/admin-summary';
-import { isAdminRequest, passwordConfigured, unauthorized } from '@/lib/credits/auth';
+import { requireAdmin } from '@/lib/credits/auth';
 import { parseCreditPool, parseLumaGuestsCsv } from '@/lib/credits/csv';
 import { loadCreditsState, updateCreditsState } from '@/lib/credits/store';
 import type { CreditsMode } from '@/lib/credits/types';
@@ -9,20 +9,16 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-	if (!passwordConfigured()) {
-		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
-	}
-	if (!isAdminRequest(request)) return unauthorized();
+	const denied = await requireAdmin(request);
+	if (denied) return denied;
 
 	const state = await loadCreditsState();
 	return NextResponse.json(buildAdminSummary(state));
 }
 
 export async function POST(request: Request) {
-	if (!passwordConfigured()) {
-		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
-	}
-	if (!isAdminRequest(request)) return unauthorized();
+	const denied = await requireAdmin(request);
+	if (denied) return denied;
 
 	const form = await request.formData();
 	const guestsFile = form.get('guests');
@@ -49,7 +45,7 @@ export async function POST(request: Request) {
 			pool = parseCreditPool(poolPayload).filter((code) => !assigned.has(code));
 		}
 
-		if (typeof modeValue === 'string' && (modeValue === 'pool' || modeValue === 'shared')) {
+		if (typeof modeValue === 'string' && (modeValue === 'pool' || modeValue === 'shared' || modeValue === 'dual')) {
 			mode = modeValue;
 		}
 

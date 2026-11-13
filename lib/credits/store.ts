@@ -1,7 +1,13 @@
 import 'server-only';
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { bootstrapStateFromEnv, creditsStoreKind, ensureStoreDir, getCreditsRuntimeConfig } from './config';
+import {
+	bootstrapStateFromEnv,
+	creditsStoreKind,
+	ensureStoreDir,
+	getCreditsRuntimeConfig,
+	overlayRuntimeSecrets,
+} from './config';
 import { createCreditsState } from './assign';
 import { kvFetch, withKvLock } from './kv';
 import type { CreditsState } from './types';
@@ -83,7 +89,8 @@ async function mutateState(
 	mutator: (state: CreditsState) => CreditsState | Promise<CreditsState>,
 ): Promise<CreditsState> {
 	const existing = await readRaw();
-	const current = existing && !isUninitialized(existing) ? existing : await bootstrapStateFromEnv();
+	const current =
+		existing && !isUninitialized(existing) ? overlayRuntimeSecrets(existing) : await bootstrapStateFromEnv();
 	const next = await mutator(current);
 	await writeRaw(next);
 	return next;
@@ -91,7 +98,7 @@ async function mutateState(
 
 async function loadState(): Promise<CreditsState> {
 	const existing = await readRaw();
-	if (existing && !isUninitialized(existing)) return existing;
+	if (existing && !isUninitialized(existing)) return overlayRuntimeSecrets(existing);
 	const bootstrapped = await bootstrapStateFromEnv();
 	if (!isUninitialized(bootstrapped)) {
 		await writeRaw(bootstrapped);

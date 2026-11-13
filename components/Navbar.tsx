@@ -14,7 +14,6 @@ const NAV_LINKS = [
 	{ href: '/#community', sectionId: 'community', key: 'nav.community' },
 	{ href: '/#events', sectionId: 'events', key: 'nav.events' },
 	{ href: '/#recaps', sectionId: 'recaps', key: 'nav.recaps' },
-	{ href: '/creditos', sectionId: 'creditos', key: 'nav.credits' },
 ] as const;
 
 function useScrollState() {

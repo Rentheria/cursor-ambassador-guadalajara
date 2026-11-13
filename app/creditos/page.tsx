@@ -11,7 +11,12 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
 	title: 'Créditos de Cursor',
 	description: `Reclama los créditos de Cursor del Hackatón México en ${siteConfig.city}.`,
-	robots: { index: false, follow: false },
+	robots: {
+		index: false,
+		follow: false,
+		nocache: true,
+		googleBot: { index: false, follow: false, noimageindex: true },
+	},
 };
 
 export default function CreditosPage() {

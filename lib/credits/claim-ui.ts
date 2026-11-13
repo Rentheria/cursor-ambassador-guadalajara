@@ -7,10 +7,11 @@ export type ClaimUiStatus =
 	| 'rate_limited'
 	| 'forbidden';
 
-export type ClaimUiPhase = 'form' | 'success' | 'message';
+export type ClaimUiPhase = 'form' | 'choose' | 'success' | 'message';
 
-export function claimUiPhase(status: ClaimUiStatus | null | undefined): ClaimUiPhase {
+export function claimUiPhase(status: ClaimUiStatus | null | undefined, extras?: { needsPath?: boolean }): ClaimUiPhase {
 	if (!status) return 'form';
+	if (status === 'ok' && extras?.needsPath) return 'choose';
 	if (status === 'ok') return 'success';
 	return 'message';
 }

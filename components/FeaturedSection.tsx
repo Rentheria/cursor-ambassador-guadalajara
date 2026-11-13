@@ -15,8 +15,13 @@ const FeaturedSection: React.FC = () => {
 			<p className="mb-6 max-w-2xl text-base leading-relaxed text-cursor-text-secondary md:text-lg">
 				{featuredResource.description || t('featured.defaultDescription')}
 			</p>
-			<Button href={featuredResource.href} variant="primary" size="md">
-				{featuredResource.ctaLabel || t('home.viewSlides')}
+			<Button
+				href={featuredResource.href}
+				external={/^https?:\/\//i.test(featuredResource.href)}
+				variant="primary"
+				size="md"
+			>
+				{featuredResource.ctaLabel || t('home.register')}
 				<span aria-hidden="true">→</span>
 			</Button>
 		</section>

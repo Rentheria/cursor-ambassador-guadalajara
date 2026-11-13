@@ -10,6 +10,7 @@ export function buildAdminSummary(state: CreditsState) {
 		mode: state.mode,
 		storeKind: creditsStoreKind(),
 		sharedLinkConfigured: Boolean(state.sharedLink.trim()),
+		dualConfigured: Boolean(state.linkNewUsers.trim() && state.linkExistingUsers.trim()),
 		stats: {
 			guests: state.guests.length,
 			eligible: eligible.length,
@@ -24,6 +25,7 @@ export function buildAdminSummary(state: CreditsState) {
 			name: entry.name,
 			credit: entry.credit,
 			claimedAt: entry.claimedAt,
+			path: entry.path,
 		})),
 		unclaimed: unclaimedGuests(state).map((guest) => ({
 			email: guest.email,

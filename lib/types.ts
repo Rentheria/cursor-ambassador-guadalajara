@@ -42,7 +42,7 @@ export interface FeaturedResource {
 	title: string;
 	description: string;
 	href: string;
-	ctaLabel: string;
+	ctaLabel?: string;
 }
 
 export interface BentoImage {

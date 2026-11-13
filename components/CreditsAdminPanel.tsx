@@ -5,11 +5,12 @@ import { Badge, Button, cardBase } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 
 type GuestRow = { email: string; name: string; approvalStatus?: string };
-type ClaimedRow = GuestRow & { credit: string; claimedAt: string };
+type ClaimedRow = GuestRow & { credit: string; claimedAt: string; path?: 'new' | 'existing' | null };
 type FailedRow = { email: string; at: string; reason: string };
+type CreditsMode = 'pool' | 'shared' | 'dual';
 
 type AdminSummary = {
-	mode: 'pool' | 'shared';
+	mode: CreditsMode;
 	storeKind: 'kv' | 'file';
 	sharedLinkConfigured: boolean;
 	stats: {
@@ -33,7 +34,7 @@ export default function CreditsAdminPanel() {
 	const [authed, setAuthed] = useState(false);
 	const [error, setError] = useState('');
 	const [summary, setSummary] = useState<AdminSummary | null>(null);
-	const [mode, setMode] = useState<'pool' | 'shared'>('pool');
+	const [mode, setMode] = useState<CreditsMode>('pool');
 	const [sharedLink, setSharedLink] = useState('');
 	const [saving, setSaving] = useState(false);
 
@@ -193,7 +194,12 @@ export default function CreditsAdminPanel() {
 						<input type="radio" name="modeChoice" checked={mode === 'shared'} onChange={() => setMode('shared')} />
 						{t('credits.modeShared')}
 					</label>
+					<label className="flex items-center gap-2 text-sm text-cursor-text">
+						<input type="radio" name="modeChoice" checked={mode === 'dual'} onChange={() => setMode('dual')} />
+						{t('credits.modeDual')}
+					</label>
 				</div>
+				{mode === 'dual' ? <p className="text-sm text-cursor-text-secondary">{t('credits.adminDualHelp')}</p> : null}
 
 				<label className="block text-sm text-cursor-text-muted">
 					{t('credits.adminPoolFile')}
@@ -238,8 +244,24 @@ export default function CreditsAdminPanel() {
 			<AdminTable
 				title={t('credits.claimedHeading')}
 				empty={t('credits.emptyClaimed')}
-				headers={[t('credits.colName'), t('credits.colEmail'), t('credits.colCredit'), t('credits.colWhen')]}
-				rows={(summary?.claimed ?? []).map((row) => [row.name, row.email, row.credit, row.claimedAt])}
+				headers={[
+					t('credits.colName'),
+					t('credits.colEmail'),
+					t('credits.colPath'),
+					t('credits.colCredit'),
+					t('credits.colWhen'),
+				]}
+				rows={(summary?.claimed ?? []).map((row) => [
+					row.name,
+					row.email,
+					row.path === 'new'
+						? t('credits.pathNew')
+						: row.path === 'existing'
+							? t('credits.pathExisting')
+							: t('credits.pathPending'),
+					row.credit,
+					row.claimedAt,
+				])}
 				testId="admin-claimed"
 			/>
 			<AdminTable

@@ -3,7 +3,9 @@ import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ADMIN_COOKIE, ADMIN_SESSION_HOURS, getCreditsRuntimeConfig } from './config';
+import { limitClient } from './limit';
 import { cookieSecureFromRequest, isSameOriginRequest } from './origin';
+import { clientKeyFromRequest } from './rate-limit';
 
 function hmac(secret: string, payload: string): string {
 	return createHmac('sha256', secret).update(payload).digest('hex');
@@ -50,21 +52,30 @@ export function readAdminToken(request: Request): string | undefined {
 	return decodeURIComponent(match.slice(ADMIN_COOKIE.length + 1));
 }
 
-function hasBearerAdmin(request: Request): boolean {
-	const bearer = request.headers.get('authorization');
-	if (!bearer?.toLowerCase().startsWith('bearer ')) return false;
-	const token = bearer.slice(7).trim();
-	return verifyAdminPassword(token) || verifyAdminToken(token);
-}
-
 export function isAdminRequest(request: Request): boolean {
-	if (hasBearerAdmin(request)) return true;
 	if (!verifyAdminToken(readAdminToken(request))) return false;
 	return isSameOriginRequest(request);
 }
 
 export function unauthorized(): NextResponse {
 	return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+}
+
+/** Cookie + same-origin only. Failed attempts share the claim rate-limit budget. */
+export async function requireAdmin(request: Request): Promise<NextResponse | null> {
+	if (!passwordConfigured()) {
+		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
+	}
+	if (isAdminRequest(request)) return null;
+
+	const limited = await limitClient(`admin:${clientKeyFromRequest(request)}`);
+	if (!limited.ok) {
+		return NextResponse.json(
+			{ error: 'rate_limited' },
+			{ status: 429, headers: { 'Retry-After': String(limited.retryAfterSec) } },
+		);
+	}
+	return unauthorized();
 }
 
 export function verifyClaimToken(candidate: string | null | undefined): boolean {

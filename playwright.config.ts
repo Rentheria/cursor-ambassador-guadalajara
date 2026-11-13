@@ -3,10 +3,13 @@ import path from 'node:path';
 
 const PORT = process.env.E2E_PORT ?? '3011';
 const WINDOW_PORT = process.env.E2E_WINDOW_PORT ?? '3012';
+const DUAL_PORT = process.env.E2E_DUAL_PORT ?? '3013';
 const BASE = `http://127.0.0.1:${PORT}`;
 const WINDOW_BASE = `http://127.0.0.1:${WINDOW_PORT}`;
+const DUAL_BASE = `http://127.0.0.1:${DUAL_PORT}`;
 const storePath = path.join(process.cwd(), '.data', 'credits-e2e.json');
 const windowStorePath = path.join(process.cwd(), '.data', 'credits-e2e-window.json');
+const dualStorePath = path.join(process.cwd(), '.data', 'credits-e2e-dual.json');
 
 const guestsPath = path.join(process.cwd(), 'fixtures/credits/luma-guests.sample.csv');
 const poolPath = path.join(process.cwd(), 'fixtures/credits/codes.sample.txt');
@@ -36,8 +39,9 @@ export default defineConfig({
 	expect: { timeout: 15_000 },
 	retries: 0,
 	projects: [
-		{ name: 'claim-open', testIgnore: /credits-window\.spec\.ts/ },
+		{ name: 'claim-open', testIgnore: /credits-window\.spec\.ts|credits-dual\.spec\.ts/ },
 		{ name: 'claim-window', testMatch: /credits-window\.spec\.ts/, use: { baseURL: WINDOW_BASE } },
+		{ name: 'claim-dual', testMatch: /credits-dual\.spec\.ts/, use: { baseURL: DUAL_BASE } },
 	],
 	use: {
 		baseURL: BASE,
@@ -59,6 +63,17 @@ export default defineConfig({
 			timeout: 120_000,
 			env: creditsServerEnv(WINDOW_PORT, WINDOW_BASE, windowStorePath, {
 				CREDITS_OPEN_AT: '2099-11-14T10:00:00-06:00',
+			}),
+		},
+		{
+			command: `rm -f "${dualStorePath}" && pnpm exec next start --port ${DUAL_PORT}`,
+			url: `${DUAL_BASE}/creditos`,
+			reuseExistingServer: false,
+			timeout: 120_000,
+			env: creditsServerEnv(DUAL_PORT, DUAL_BASE, dualStorePath, {
+				CREDITS_MODE: 'dual',
+				CREDITS_LINK_NEW_USERS: 'https://grok.com/refer/TEST-NEW-USER',
+				CREDITS_LINK_EXISTING_USERS: 'https://cursor.com/redeem/event/TEST-EXISTING',
 			}),
 		},
 	],

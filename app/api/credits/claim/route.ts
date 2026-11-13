@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { claimCredit } from '@/lib/credits/assign';
+import { claimCredit, publicClaimPayload } from '@/lib/credits/assign';
 import { verifyClaimToken } from '@/lib/credits/auth';
 import { clientKeyFromRequest } from '@/lib/credits/rate-limit';
 import { limitClient } from '@/lib/credits/limit';
@@ -21,10 +21,12 @@ export async function POST(request: Request) {
 
 	let email = '';
 	let token: string | undefined;
+	let path: unknown;
 	try {
-		const body = (await request.json()) as { email?: unknown; token?: unknown };
+		const body = (await request.json()) as { email?: unknown; token?: unknown; path?: unknown };
 		email = typeof body.email === 'string' ? body.email : '';
 		token = typeof body.token === 'string' ? body.token : undefined;
+		path = body.path;
 	} catch {
 		return NextResponse.json({ status: 'invalid' }, { status: 400 });
 	}
@@ -44,19 +46,15 @@ export async function POST(request: Request) {
 
 	const captured: { result: ClaimResult } = { result: { status: 'unavailable' } };
 	await updateCreditsState((state) => {
-		const claimed = claimCredit(state, email);
+		const claimed = claimCredit(state, email, new Date(), path);
 		captured.result = claimed.result;
 		return claimed.state;
 	});
 
 	if (captured.result.status === 'ok') {
-		return NextResponse.json({
-			status: 'ok',
-			credit: captured.result.credit,
-			reused: captured.result.reused,
-		});
+		return NextResponse.json(publicClaimPayload(captured.result));
 	}
 
 	const httpStatus = captured.result.status === 'invalid' ? 400 : captured.result.status === 'unavailable' ? 503 : 200;
-	return NextResponse.json({ status: captured.result.status }, { status: httpStatus });
+	return NextResponse.json(publicClaimPayload(captured.result), { status: httpStatus });
 }

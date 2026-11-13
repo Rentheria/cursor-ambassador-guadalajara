@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { unclaimedGuests } from '@/lib/credits/assign';
-import { isAdminRequest, passwordConfigured, unauthorized } from '@/lib/credits/auth';
+import { requireAdmin } from '@/lib/credits/auth';
 import { toCsv } from '@/lib/credits/csv';
 import { loadCreditsState } from '@/lib/credits/store';
 
@@ -22,10 +22,8 @@ async function exportKind(request: Request): Promise<string> {
 }
 
 export async function POST(request: Request) {
-	if (!passwordConfigured()) {
-		return NextResponse.json({ error: 'admin_unconfigured' }, { status: 503 });
-	}
-	if (!isAdminRequest(request)) return unauthorized();
+	const denied = await requireAdmin(request);
+	if (denied) return denied;
 
 	const kind = await exportKind(request);
 	const state = await loadCreditsState();
@@ -44,8 +42,8 @@ export async function POST(request: Request) {
 		rows = [['email', 'at', 'reason'], ...state.failedAttempts.map((entry) => [entry.email, entry.at, entry.reason])];
 	} else {
 		rows = [
-			['name', 'email', 'credit', 'claimed_at'],
-			...state.assignments.map((entry) => [entry.name, entry.email, entry.credit, entry.claimedAt]),
+			['name', 'email', 'path', 'credit', 'claimed_at'],
+			...state.assignments.map((entry) => [entry.name, entry.email, entry.path ?? '', entry.credit, entry.claimedAt]),
 		];
 	}
 
